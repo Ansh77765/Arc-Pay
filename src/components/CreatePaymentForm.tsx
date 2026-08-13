@@ -111,10 +111,10 @@ export function CreatePaymentForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full min-w-0 space-y-6"
+      className="w-full space-y-6"
     >
       {/* AMOUNT */}
-      <div className="w-full min-w-0">
+      <div className="w-full">
         <label
           htmlFor="amount"
           className="mb-2.5 block text-sm font-medium text-white/75"
@@ -127,15 +127,13 @@ export function CreatePaymentForm() {
             flex
             h-[66px]
             w-full
-            min-w-0
             items-center
             overflow-hidden
             rounded-xl
             border
-            border-white/[0.10]
+            border-white/10
             bg-[#070b13]
             transition-colors
-            duration-200
             focus-within:border-blue-500/70
           "
         >
@@ -157,32 +155,26 @@ export function CreatePaymentForm() {
                 setAmount(value);
               }
             }}
+            style={{
+              border: "none",
+              outline: "none",
+              boxShadow: "none",
+              WebkitAppearance: "none",
+              appearance: "none",
+            }}
             className="
-              !box-border
-              !m-0
-              !h-full
-              !w-0
-              !min-w-0
-              !flex-1
-              !border-0
-              !bg-transparent
-              !p-0
-              !px-5
-              !outline-none
-              !ring-0
-              appearance-none
+              m-0
+              h-full
+              min-w-0
+              flex-1
+              bg-transparent
+              px-5
               font-mono
               text-[25px]
               leading-none
               tracking-tight
               text-white
               placeholder:text-white/25
-              focus:!border-0
-              focus:!outline-none
-              focus:!ring-0
-              focus-visible:!border-0
-              focus-visible:!outline-none
-              focus-visible:!ring-0
             "
           />
 
@@ -205,7 +197,7 @@ export function CreatePaymentForm() {
       </div>
 
       {/* DESCRIPTION */}
-      <div className="w-full min-w-0">
+      <div className="w-full">
         <div className="mb-2.5 flex items-center justify-between">
           <label
             htmlFor="description"
@@ -227,33 +219,29 @@ export function CreatePaymentForm() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={140}
+          style={{
+            outline: "none",
+            boxShadow: "none",
+          }}
           className="
-            box-border
             h-[58px]
             w-full
-            min-w-0
             rounded-xl
             border
-            border-white/[0.10]
+            border-white/10
             bg-[#070b13]
             px-4
             text-sm
             text-white
-            outline-none
-            transition-all
-            duration-200
+            transition-colors
             placeholder:text-white/25
             focus:border-blue-500/70
-            focus:outline-none
-            focus:ring-4
-            focus:ring-blue-500/[0.08]
-            focus-visible:outline-none
           "
         />
       </div>
 
       {/* RECIPIENT */}
-      <div className="w-full min-w-0">
+      <div className="w-full">
         <label className="mb-2.5 block text-sm font-medium text-white/75">
           You&apos;ll receive payment at
         </label>
@@ -263,7 +251,6 @@ export function CreatePaymentForm() {
             flex
             min-h-[58px]
             w-full
-            min-w-0
             items-center
             justify-between
             gap-4
@@ -280,7 +267,9 @@ export function CreatePaymentForm() {
           </span>
 
           <span className="min-w-0 truncate font-mono text-sm text-white/65">
-            {address ? shortAddress(address) : "—"}
+            {address
+              ? shortAddress(address)
+              : "—"}
           </span>
         </div>
       </div>
@@ -303,10 +292,13 @@ export function CreatePaymentForm() {
         </div>
       )}
 
-      {/* SUBMIT */}
+      {/* SUBMIT BUTTON */}
       <button
         type="submit"
         disabled={!canSubmit || submitting}
+        style={{
+          outline: "none",
+        }}
         className="
           group
           relative
@@ -336,8 +328,6 @@ export function CreatePaymentForm() {
           disabled:bg-none
           disabled:text-white/25
           disabled:shadow-none
-          focus:outline-none
-          focus-visible:outline-none
         "
       >
         {!submitting && canSubmit && (
@@ -385,8 +375,8 @@ export function CreatePaymentForm() {
       </button>
 
       <p className="text-center text-[11px] leading-5 text-white/25">
-        Your payment request is signed by your wallet and settled
-        directly on Arc Testnet.
+        Your payment request is signed by your wallet and
+        settled directly on Arc Testnet.
       </p>
     </form>
   );

@@ -19,8 +19,13 @@ import type { Invoice } from "@/types/invoice";
 
 export function CreatePaymentForm() {
   const { address, isConnected, chainId } = useAccount();
-  const publicClient = usePublicClient({ chainId: arcTestnet.id });
+
+  const publicClient = usePublicClient({
+    chainId: arcTestnet.id,
+  });
+
   const router = useRouter();
+
   const { signTypedDataAsync } = useSignTypedData();
 
   const [amount, setAmount] = useState("");
@@ -28,7 +33,8 @@ export function CreatePaymentForm() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const onArcTestnet = isConnected && chainId === arcTestnet.id;
+  const onArcTestnet =
+    isConnected && chainId === arcTestnet.id;
 
   const canSubmit =
     onArcTestnet &&
@@ -103,9 +109,12 @@ export function CreatePaymentForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Amount */}
-      <div>
+    <form
+      onSubmit={handleSubmit}
+      className="w-full min-w-0 space-y-6"
+    >
+      {/* AMOUNT */}
+      <div className="w-full min-w-0">
         <label
           htmlFor="amount"
           className="mb-2.5 block text-sm font-medium text-white/75"
@@ -113,23 +122,81 @@ export function CreatePaymentForm() {
           Amount
         </label>
 
-        <div className="group flex h-[66px] w-full items-center overflow-hidden rounded-xl border border-white/[0.10] bg-[#070b13] transition-all duration-200 focus-within:border-blue-500/70 focus-within:ring-4 focus-within:ring-blue-500/[0.08]">
+        <div
+          className="
+            flex
+            h-[66px]
+            w-full
+            min-w-0
+            items-center
+            overflow-hidden
+            rounded-xl
+            border
+            border-white/[0.10]
+            bg-[#070b13]
+            transition-colors
+            duration-200
+            focus-within:border-blue-500/70
+          "
+        >
           <input
             id="amount"
+            type="text"
             inputMode="decimal"
+            autoComplete="off"
+            spellCheck={false}
             placeholder="0.00"
             value={amount}
             onChange={(e) => {
-              const v = e.target.value;
+              const value = e.target.value;
 
-              if (v === "" || /^\d*\.?\d*$/.test(v)) {
-                setAmount(v);
+              if (
+                value === "" ||
+                /^\d*\.?\d*$/.test(value)
+              ) {
+                setAmount(value);
               }
             }}
-            className="h-full min-w-0 flex-1 border-0 bg-transparent px-5 font-mono text-[25px] tracking-tight text-white outline-none ring-0 placeholder:text-white/25 focus:border-0 focus:outline-none focus:ring-0"
+            className="
+              !box-border
+              !m-0
+              !h-full
+              !w-0
+              !min-w-0
+              !flex-1
+              !border-0
+              !bg-transparent
+              !p-0
+              !px-5
+              !outline-none
+              !ring-0
+              appearance-none
+              font-mono
+              text-[25px]
+              leading-none
+              tracking-tight
+              text-white
+              placeholder:text-white/25
+              focus:!border-0
+              focus:!outline-none
+              focus:!ring-0
+              focus-visible:!border-0
+              focus-visible:!outline-none
+              focus-visible:!ring-0
+            "
           />
 
-          <div className="flex h-full shrink-0 items-center border-l border-white/[0.07] px-5">
+          <div
+            className="
+              flex
+              h-full
+              shrink-0
+              items-center
+              border-l
+              border-white/[0.07]
+              px-5
+            "
+          >
             <span className="text-sm font-semibold text-white/45">
               USDC
             </span>
@@ -137,17 +204,14 @@ export function CreatePaymentForm() {
         </div>
       </div>
 
-      {/* Description */}
-      <div>
+      {/* DESCRIPTION */}
+      <div className="w-full min-w-0">
         <div className="mb-2.5 flex items-center justify-between">
           <label
             htmlFor="description"
             className="text-sm font-medium text-white/75"
           >
             Description
-            <span className="ml-1 font-normal text-white/30">
-              (optional)
-            </span>
           </label>
 
           <span className="text-xs text-white/30">
@@ -157,54 +221,157 @@ export function CreatePaymentForm() {
 
         <input
           id="description"
+          type="text"
+          autoComplete="off"
           placeholder="e.g. Design consultation — March"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={140}
-          className="h-[58px] w-full rounded-xl border border-white/[0.10] bg-[#070b13] px-4 text-sm text-white outline-none transition-all duration-200 placeholder:text-white/25 focus:border-blue-500/70 focus:ring-4 focus:ring-blue-500/[0.08]"
+          className="
+            box-border
+            h-[58px]
+            w-full
+            min-w-0
+            rounded-xl
+            border
+            border-white/[0.10]
+            bg-[#070b13]
+            px-4
+            text-sm
+            text-white
+            outline-none
+            transition-all
+            duration-200
+            placeholder:text-white/25
+            focus:border-blue-500/70
+            focus:outline-none
+            focus:ring-4
+            focus:ring-blue-500/[0.08]
+            focus-visible:outline-none
+          "
         />
       </div>
 
-      {/* Recipient */}
-      <div>
+      {/* RECIPIENT */}
+      <div className="w-full min-w-0">
         <label className="mb-2.5 block text-sm font-medium text-white/75">
           You&apos;ll receive payment at
         </label>
 
-        <div className="flex min-h-[58px] items-center justify-between gap-4 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4">
-          <span className="text-sm text-white/40">
+        <div
+          className="
+            flex
+            min-h-[58px]
+            w-full
+            min-w-0
+            items-center
+            justify-between
+            gap-4
+            overflow-hidden
+            rounded-xl
+            border
+            border-white/[0.07]
+            bg-white/[0.025]
+            px-4
+          "
+        >
+          <span className="shrink-0 text-sm text-white/40">
             Connected wallet
           </span>
 
-          <span className="max-w-[180px] truncate font-mono text-sm text-white/65">
+          <span className="min-w-0 truncate font-mono text-sm text-white/65">
             {address ? shortAddress(address) : "—"}
           </span>
         </div>
       </div>
 
-      {/* Error */}
+      {/* ERROR */}
       {formError && (
-        <div className="rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3">
+        <div
+          className="
+            rounded-xl
+            border
+            border-red-400/20
+            bg-red-400/[0.06]
+            px-4
+            py-3
+          "
+        >
           <p className="text-sm leading-5 text-red-300">
             {formError}
           </p>
         </div>
       )}
 
-      {/* Submit */}
+      {/* SUBMIT */}
       <button
         type="submit"
         disabled={!canSubmit || submitting}
-        className="group relative flex h-[60px] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-[#4f46e5] via-[#4169e1] to-[#2563eb] text-sm font-semibold text-white shadow-[0_12px_30px_-10px_rgba(59,91,219,0.7)] transition-all duration-200 hover:-translate-y-[1px] hover:shadow-[0_16px_35px_-10px_rgba(59,91,219,0.85)] active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-white/[0.07] disabled:bg-none disabled:text-white/25 disabled:shadow-none"
+        className="
+          group
+          relative
+          flex
+          h-[60px]
+          w-full
+          items-center
+          justify-center
+          overflow-hidden
+          rounded-xl
+          bg-gradient-to-r
+          from-[#4f46e5]
+          via-[#4169e1]
+          to-[#2563eb]
+          text-sm
+          font-semibold
+          text-white
+          shadow-[0_12px_30px_-10px_rgba(59,91,219,0.7)]
+          transition-all
+          duration-200
+          hover:-translate-y-[1px]
+          hover:shadow-[0_16px_35px_-10px_rgba(59,91,219,0.85)]
+          active:translate-y-0
+          disabled:cursor-not-allowed
+          disabled:translate-y-0
+          disabled:bg-white/[0.07]
+          disabled:bg-none
+          disabled:text-white/25
+          disabled:shadow-none
+          focus:outline-none
+          focus-visible:outline-none
+        "
       >
         {!submitting && canSubmit && (
-          <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.12] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+          <span
+            className="
+              pointer-events-none
+              absolute
+              inset-0
+              -translate-x-full
+              bg-gradient-to-r
+              from-transparent
+              via-white/[0.12]
+              to-transparent
+              transition-transform
+              duration-700
+              group-hover:translate-x-full
+            "
+          />
         )}
 
         <span className="relative">
           {submitting ? (
             <span className="flex items-center gap-2.5">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <span
+                className="
+                  h-4
+                  w-4
+                  animate-spin
+                  rounded-full
+                  border-2
+                  border-white/30
+                  border-t-white
+                "
+              />
               Creating link…
             </span>
           ) : !isConnected ? (

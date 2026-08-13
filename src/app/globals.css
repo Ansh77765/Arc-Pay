@@ -3,9 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: -apple-system, "SF Pro Text", "Segoe UI", "Inter", system-ui, sans-serif;
-  --font-mono: "SF Mono", "IBM Plex Mono", "JetBrains Mono", Menlo, Consolas, ui-monospace,
-    monospace;
+  --font-sans: -apple-system, "SF Pro Text", "Segoe UI", "Inter", system-ui,
+    sans-serif;
+
+  --font-mono: "SF Mono", "IBM Plex Mono", "JetBrains Mono", Menlo, Consolas,
+    ui-monospace, monospace;
 }
 
 * {
@@ -17,11 +19,13 @@ html {
 }
 
 body {
+  margin: 0;
   background-color: theme("colors.canvas.DEFAULT");
   color: theme("colors.ink.DEFAULT");
   font-family: var(--font-sans);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 ::selection {
@@ -29,26 +33,52 @@ body {
   color: theme("colors.ink.DEFAULT");
 }
 
-/* Subtle background texture: faint radial glow + grain-free grid */
+/* -------------------------------------------------
+   Background
+------------------------------------------------- */
+
 .bg-canvas-field {
   background-image:
-    radial-gradient(ellipse 60% 40% at 50% -10%, rgba(76, 111, 255, 0.12), transparent),
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: auto, 44px 44px, 44px 44px;
-  background-position: center, center, center;
+    radial-gradient(
+      ellipse 60% 40% at 50% -10%,
+      rgba(76, 111, 255, 0.12),
+      transparent
+    ),
+    linear-gradient(
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px
+    );
+
+  background-size:
+    auto,
+    44px 44px,
+    44px 44px;
+
+  background-position:
+    center,
+    center,
+    center;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* Receipt-style perforated divider */
+/* -------------------------------------------------
+   Receipt-style divider
+------------------------------------------------- */
+
 .perforation {
   position: relative;
   height: 0;
   border-top: 1px dashed theme("colors.line.DEFAULT");
 }
+
 .perforation::before,
 .perforation::after {
   content: "";
@@ -60,12 +90,73 @@ body {
   background: theme("colors.canvas.DEFAULT");
   border: 1px solid theme("colors.line.DEFAULT");
 }
+
 .perforation::before {
   left: -9px;
 }
+
 .perforation::after {
   right: -9px;
 }
+
+/* -------------------------------------------------
+   Accessible focus
+------------------------------------------------- */
+
+/*
+  Keep keyboard focus visible for normal elements.
+  Form controls get their own focus treatment below.
+*/
+
+:focus-visible {
+  outline: 2px solid theme("colors.accent.DEFAULT");
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/*
+  Prevent the global focus outline from creating
+  a second box around inputs.
+*/
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+button:focus,
+button:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
+/* -------------------------------------------------
+   Form controls
+------------------------------------------------- */
+
+input,
+textarea,
+select {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* -------------------------------------------------
+   Motion accessibility
+------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -74,12 +165,6 @@ body {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
-}
-
-/* Focus visibility */
-:focus-visible {
-  outline: 2px solid theme("colors.accent.DEFAULT");
-  outline-offset: 2px;
-  border-radius: 4px;
 }

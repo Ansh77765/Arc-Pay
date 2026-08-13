@@ -45,50 +45,70 @@ function isPermit2PaymentTx(
       return null;
     }
 
-    // viem can type decoded.args as possibly undefined.
-    if (!decoded.args) {
+    if (!decoded.args || decoded.args.length < 3) {
       return null;
     }
 
-    const args = decoded.args[0];
-    const details = decoded.args[1];
-    const owner = decoded.args[2];
+    /*
+     * Viem may infer decoded.args too generically depending
+     * on the ABI definition. Define the Permit2 calldata shape
+     * explicitly so TypeScript can safely validate it.
+     */
+    const args = decoded.args as readonly [
+      {
+        permitted: {
+          token: `0x${string}`;
+          amount: bigint;
+        };
+        nonce: bigint;
+        deadline: bigint;
+      },
+      {
+        to: `0x${string}`;
+        requestedAmount: bigint;
+      },
+      `0x${string}`
+    ];
 
-    if (!args || !details || !owner) {
+    const permit = args[0];
+    const details = args[1];
+    const owner = args[2];
+
+    if (!permit || !details || !owner) {
       return null;
     }
 
     const { recipient, value, nonce } = expected(invoice);
 
-    // Verify the token being transferred.
+    // Verify the token.
     if (
-      getAddress(args.permitted.token) !==
+      getAddress(permit.permitted.token) !==
       getAddress(USDC_ADDRESS)
     ) {
       return null;
     }
 
-    // Verify the maximum permitted amount.
-    if (args.permitted.amount !== value) {
+    // Verify the exact permitted amount.
+    if (permit.permitted.amount !== value) {
       return null;
     }
 
-    // Verify this exact invoice nonce.
-    if (BigInt(args.nonce) !== nonce) {
+    // Verify the invoice-specific nonce.
+    if (BigInt(permit.nonce) !== nonce) {
       return null;
     }
 
-    // Verify the recipient.
+    // Verify the exact recipient.
     if (getAddress(details.to) !== recipient) {
       return null;
     }
 
-    // Verify the actual requested amount.
+    // Verify the exact requested amount.
     if (BigInt(details.requestedAmount) !== value) {
       return null;
     }
 
-    // The payer cannot be the recipient.
+    // The recipient cannot pay their own invoice.
     if (getAddress(owner) === recipient) {
       return null;
     }

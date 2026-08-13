@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: -apple-system, "SF Pro Text", "Segoe UI", "Inter", system-ui, sans-serif;
+  --font-mono: "SF Mono", "IBM Plex Mono", "JetBrains Mono", Menlo, Consolas, ui-monospace,
+    monospace;
+}
+
+* {
+  border-color: theme("colors.line.DEFAULT");
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: theme("colors.canvas.DEFAULT");
+  color: theme("colors.ink.DEFAULT");
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: theme("colors.accent.soft");
+  color: theme("colors.ink.DEFAULT");
+}
+
+/* Subtle background texture: faint radial glow + grain-free grid */
+.bg-canvas-field {
+  background-image:
+    radial-gradient(ellipse 60% 40% at 50% -10%, rgba(76, 111, 255, 0.12), transparent),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: auto, 44px 44px, 44px 44px;
+  background-position: center, center, center;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Receipt-style perforated divider */
+.perforation {
+  position: relative;
+  height: 0;
+  border-top: 1px dashed theme("colors.line.DEFAULT");
+}
+.perforation::before,
+.perforation::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: theme("colors.canvas.DEFAULT");
+  border: 1px solid theme("colors.line.DEFAULT");
+}
+.perforation::before {
+  left: -9px;
+}
+.perforation::after {
+  right: -9px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Focus visibility */
+:focus-visible {
+  outline: 2px solid theme("colors.accent.DEFAULT");
+  outline-offset: 2px;
+  border-radius: 4px;
+}

@@ -1,12 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount, usePublicClient } from "wagmi";
+import { useAccount, usePublicClient, useSignTypedData } from "wagmi";
 import { useRouter } from "next/navigation";
 import { arcTestnet } from "@/lib/chain";
-import { generateInvoiceId, generateInvoiceNonce, encodeInvoice } from "@/lib/invoice";
-import { invoiceDomain, invoiceMessage, invoiceTypes } from "@/lib/paymentRequest";
-import { useSignTypedData } from "wagmi";
+import {
+  generateInvoiceId,
+  generateInvoiceNonce,
+  encodeInvoice,
+} from "@/lib/invoice";
+import {
+  invoiceDomain,
+  invoiceMessage,
+  invoiceTypes,
+} from "@/lib/paymentRequest";
 import { isValidAmount, shortAddress } from "@/lib/format";
 import type { Invoice } from "@/types/invoice";
 
@@ -22,7 +29,11 @@ export function CreatePaymentForm() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const onArcTestnet = isConnected && chainId === arcTestnet.id;
-  const canSubmit = onArcTestnet && isValidAmount(amount) && description.trim().length > 0;
+
+  const canSubmit =
+    onArcTestnet &&
+    isValidAmount(amount) &&
+    description.trim().length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,20 +43,26 @@ export function CreatePaymentForm() {
       setFormError("Connect your wallet first.");
       return;
     }
+
     if (!isValidAmount(amount)) {
       setFormError("Enter a valid USDC amount greater than 0.");
       return;
     }
+
     if (!description.trim()) {
       setFormError("Add a short description.");
       return;
     }
 
     setSubmitting(true);
+
     try {
-      const fromBlock = publicClient ? await publicClient.getBlockNumber() : 0n;
+      const fromBlock = publicClient
+        ? await publicClient.getBlockNumber()
+        : 0n;
 
       const id = generateInvoiceId();
+
       const invoice: Invoice = {
         version: 2,
         id,
@@ -66,22 +83,37 @@ export function CreatePaymentForm() {
         message: invoiceMessage(invoice),
       });
 
-      const signedInvoice = { ...invoice, signature };
+      const signedInvoice = {
+        ...invoice,
+        signature,
+      };
+
       const token = encodeInvoice(signedInvoice);
+
       router.push(`/pay/${token}`);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Could not create the payment link.");
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : "Could not create the payment link."
+      );
+
       setSubmitting(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Amount */}
       <div>
-        <label htmlFor="amount" className="mb-1.5 block text-sm font-medium text-ink-dim">
+        <label
+          htmlFor="amount"
+          className="mb-2.5 block text-sm font-medium text-white/75"
+        >
           Amount
         </label>
-        <div className="flex items-center rounded-lg border border-line bg-canvas-panel px-4 transition-colors focus-within:border-accent">
+
+        <div className="group flex h-[66px] w-full items-center overflow-hidden rounded-xl border border-white/[0.10] bg-[#070b13] transition-all duration-200 focus-within:border-blue-500/70 focus-within:ring-4 focus-within:ring-blue-500/[0.08]">
           <input
             id="amount"
             inputMode="decimal"
@@ -89,60 +121,106 @@ export function CreatePaymentForm() {
             value={amount}
             onChange={(e) => {
               const v = e.target.value;
-              if (v === "" || /^\d*\.?\d*$/.test(v)) setAmount(v);
+
+              if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                setAmount(v);
+              }
             }}
-            className="w-full bg-transparent py-3.5 font-mono text-2xl tabular text-ink outline-none placeholder:text-ink-faint"
+            className="h-full min-w-0 flex-1 border-0 bg-transparent px-5 font-mono text-[25px] tracking-tight text-white outline-none ring-0 placeholder:text-white/25 focus:border-0 focus:outline-none focus:ring-0"
           />
-          <span className="text-sm font-medium text-ink-faint">USDC</span>
+
+          <div className="flex h-full shrink-0 items-center border-l border-white/[0.07] px-5">
+            <span className="text-sm font-semibold text-white/45">
+              USDC
+            </span>
+          </div>
         </div>
       </div>
 
+      {/* Description */}
       <div>
-        <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-ink-dim">
-          Description
-        </label>
+        <div className="mb-2.5 flex items-center justify-between">
+          <label
+            htmlFor="description"
+            className="text-sm font-medium text-white/75"
+          >
+            Description
+            <span className="ml-1 font-normal text-white/30">
+              (optional)
+            </span>
+          </label>
+
+          <span className="text-xs text-white/30">
+            {description.length}/140
+          </span>
+        </div>
+
         <input
           id="description"
           placeholder="e.g. Design consultation — March"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={140}
-          className="w-full rounded-lg border border-line bg-canvas-panel px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent"
+          className="h-[58px] w-full rounded-xl border border-white/[0.10] bg-[#070b13] px-4 text-sm text-white outline-none transition-all duration-200 placeholder:text-white/25 focus:border-blue-500/70 focus:ring-4 focus:ring-blue-500/[0.08]"
         />
-        <p className="mt-1.5 text-right text-xs text-ink-faint">{description.length}/140</p>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-line-soft bg-canvas-panel/50 px-4 py-3">
-        <span className="text-sm text-ink-dim">You&apos;ll receive payment at</span>
-        <span className="font-mono text-sm text-ink">
-          {address ? shortAddress(address) : "—"}
-        </span>
+      {/* Recipient */}
+      <div>
+        <label className="mb-2.5 block text-sm font-medium text-white/75">
+          You&apos;ll receive payment at
+        </label>
+
+        <div className="flex min-h-[58px] items-center justify-between gap-4 rounded-xl border border-white/[0.07] bg-white/[0.025] px-4">
+          <span className="text-sm text-white/40">
+            Connected wallet
+          </span>
+
+          <span className="max-w-[180px] truncate font-mono text-sm text-white/65">
+            {address ? shortAddress(address) : "—"}
+          </span>
+        </div>
       </div>
 
+      {/* Error */}
       {formError && (
-        <p className="rounded-lg border border-bad/25 bg-bad/10 px-4 py-2.5 text-sm text-bad">
-          {formError}
-        </p>
+        <div className="rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3">
+          <p className="text-sm leading-5 text-red-300">
+            {formError}
+          </p>
+        </div>
       )}
 
+      {/* Submit */}
       <button
         type="submit"
         disabled={!canSubmit || submitting}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-3.5 text-sm font-semibold text-white shadow-pop transition-all hover:bg-accent-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-faint disabled:shadow-none"
+        className="group relative flex h-[60px] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-[#4f46e5] via-[#4169e1] to-[#2563eb] text-sm font-semibold text-white shadow-[0_12px_30px_-10px_rgba(59,91,219,0.7)] transition-all duration-200 hover:-translate-y-[1px] hover:shadow-[0_16px_35px_-10px_rgba(59,91,219,0.85)] active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-white/[0.07] disabled:bg-none disabled:text-white/25 disabled:shadow-none"
       >
-        {submitting ? (
-          <>
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-            Creating link…
-          </>
-        ) : !isConnected ? (
-          "Connect your wallet to continue"
-        ) : !onArcTestnet ? (
-          "Switch to Arc Testnet to continue"
-        ) : (
-          "Create payment link"
+        {!submitting && canSubmit && (
+          <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.12] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
         )}
+
+        <span className="relative">
+          {submitting ? (
+            <span className="flex items-center gap-2.5">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              Creating link…
+            </span>
+          ) : !isConnected ? (
+            "Connect your wallet to continue"
+          ) : !onArcTestnet ? (
+            "Switch to Arc Testnet to continue"
+          ) : (
+            "Create payment link"
+          )}
+        </span>
       </button>
+
+      <p className="text-center text-[11px] leading-5 text-white/25">
+        Your payment request is signed by your wallet and settled
+        directly on Arc Testnet.
+      </p>
     </form>
   );
 }

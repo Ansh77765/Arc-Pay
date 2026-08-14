@@ -1,3 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: -apple-system, "SF Pro Text", "Segoe UI", "Inter", system-ui,
+    sans-serif;
+
+  --font-mono: "SF Mono", "IBM Plex Mono", "JetBrains Mono", Menlo, Consolas,
+    ui-monospace, monospace;
+}
+
+* {
+  border-color: #232326;
+}
+
+html {
+  color-scheme: dark;
+  background: #05080f;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #05080f;
+  color: #f3f3f2;
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1;
+}
+
+::selection {
+  background-color: #1a2247;
+  color: #f3f3f2;
+}
+
+/* -------------------------------------------------------
+   Background
+------------------------------------------------------- */
+
+.bg-canvas-field {
+  background-image:
+    radial-gradient(
+      ellipse 60% 40% at 50% -10%,
+      rgba(76, 111, 255, 0.12),
+      transparent
+    ),
+    linear-gradient(
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.025) 1px,
+      transparent 1px
+    );
+
+  background-size:
+    auto,
+    44px 44px,
+    44px 44px;
+
+  background-position:
+    center,
+    center,
+    center;
+}
+
+/* -------------------------------------------------------
+   Numbers
+------------------------------------------------------- */
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------
+   Receipt perforation
+------------------------------------------------------- */
+
+.perforation {
+  position: relative;
+  height: 0;
+  border-top: 1px dashed #232326;
+}
+
+.perforation::before,
+.perforation::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #0a0a0b;
+  border: 1px solid #232326;
+}
+
+.perforation::before {
+  left: -9px;
+}
+
+.perforation::after {
+  right: -9px;
+}
+
+/* -------------------------------------------------------
+   Custom animations
+------------------------------------------------------- */
+
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -20,12 +147,74 @@
   }
 }
 
+@keyframes softPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* -------------------------------------------------------
+   Focus
+------------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid #4c6fff;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Don't add an extra outline to text inputs.
+   Their parent handles focus styling. */
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* -------------------------------------------------------
+   Scrollbar
+------------------------------------------------------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* -------------------------------------------------------
+   Reduced motion
+------------------------------------------------------- */
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-\[fadeUp_\.6s_ease-out\],
-  .animate-\[fadeUp_\.7s_ease-out\],
-  .animate-\[fadeUp_\.8s_ease-out\],
-  .animate-\[fadeUp_\.9s_ease-out\],
-  .animate-\[fadeIn_\.7s_ease-out\] {
-    animation: none !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

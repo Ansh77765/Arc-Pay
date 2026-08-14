@@ -1,11 +1,8 @@
 "use client";
 
-import { motion } from "motion/react";
 import { TopBar } from "@/components/TopBar";
 import { CreatePaymentForm } from "@/components/CreatePaymentForm";
 import { useAccount, useConnect } from "wagmi";
-
-const ease = [0.22, 1, 0.36, 1] as const;
 
 function ShieldIcon() {
   return (
@@ -54,14 +51,18 @@ function LinkIcon() {
 }
 
 function QrPlaceholder() {
+  const blocks = [
+    0, 1, 2, 5, 7, 10, 12, 14, 16, 18, 20, 21, 23, 24,
+  ];
+
   return (
-    <div className="relative flex h-[150px] w-[150px] items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.025]">
+    <div className="relative flex h-[140px] w-[140px] shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.025]">
       <div className="grid grid-cols-5 gap-1 opacity-20">
         {Array.from({ length: 25 }).map((_, i) => (
           <span
             key={i}
             className={`h-4 w-4 rounded-[2px] ${
-              [0, 1, 2, 5, 7, 10, 12, 14, 16, 18, 20, 21, 23, 24].includes(i)
+              blocks.includes(i)
                 ? "bg-white"
                 : "bg-transparent"
             }`}
@@ -94,18 +95,7 @@ export default function HomePage() {
     <div className="relative min-h-screen overflow-hidden bg-[#05080f] text-white">
       {/* Background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <motion.div
-          animate={{
-            scale: [1, 1.04, 1],
-            opacity: [0.35, 0.5, 0.35],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute left-1/2 top-[-420px] h-[800px] w-[900px] -translate-x-1/2 rounded-full bg-blue-600/[0.06] blur-[150px]"
-        />
+        <div className="absolute left-1/2 top-[-420px] h-[800px] w-[900px] -translate-x-1/2 rounded-full bg-blue-600/[0.06] blur-[150px] animate-pulse" />
 
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.025),transparent_35%)]" />
       </div>
@@ -125,13 +115,8 @@ export default function HomePage() {
 
         <main className="mx-auto max-w-[1380px] px-5 pb-24 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pt-20">
           <div className="grid items-start gap-14 lg:grid-cols-[minmax(0,1fr)_500px] lg:gap-20 xl:gap-28">
-            {/* LEFT */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease }}
-              className="pt-2"
-            >
+            {/* LEFT SIDE */}
+            <section className="animate-[fadeUp_.6s_ease-out] pt-2">
               <p className="mb-5 text-[11px] font-medium uppercase tracking-[0.18em] text-blue-400/75">
                 Simple USDC payments
               </p>
@@ -151,12 +136,7 @@ export default function HomePage() {
 
               {/* Primary wallet CTA */}
               {!isConnected && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.55, ease }}
-                  className="mt-9"
-                >
+                <div className="mt-9 animate-[fadeUp_.7s_ease-out]">
                   <button
                     type="button"
                     onClick={handleConnect}
@@ -178,21 +158,17 @@ export default function HomePage() {
                       />
                     </svg>
                   </button>
-                </motion.div>
+                </div>
               )}
 
               {/* Compact summary */}
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.6, ease }}
-                className="mt-12 max-w-[620px] rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5"
-              >
+              <div className="mt-12 max-w-[620px] rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 animate-[fadeUp_.8s_ease-out]">
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.14em] text-white/25">
                       Payment
                     </p>
+
                     <p className="mt-1 text-sm font-medium text-white/75">
                       USDC
                     </p>
@@ -204,6 +180,7 @@ export default function HomePage() {
                     <p className="text-[10px] uppercase tracking-[0.14em] text-white/25">
                       Network
                     </p>
+
                     <p className="mt-1 text-sm font-medium text-white/75">
                       Arc Testnet
                     </p>
@@ -220,6 +197,7 @@ export default function HomePage() {
                       <p className="text-sm font-medium text-white/70">
                         Non-custodial
                       </p>
+
                       <p className="text-[11px] text-white/30">
                         Funds go straight to your wallet
                       </p>
@@ -229,20 +207,15 @@ export default function HomePage() {
 
                 <div className="mt-4 border-t border-white/[0.06] pt-4">
                   <p className="text-xs leading-5 text-white/35">
-                    Your funds go directly to your wallet — we never
-                    hold or control your money.
+                    Your funds go directly to your wallet —
+                    we never hold or control your money.
                   </p>
                 </div>
-              </motion.div>
-            </motion.section>
+              </div>
+            </section>
 
-            {/* RIGHT */}
-            <motion.section
-              initial={{ opacity: 0, x: 24, scale: 0.985 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ delay: 0.1, duration: 0.7, ease }}
-              className="space-y-5"
-            >
+            {/* RIGHT SIDE */}
+            <section className="space-y-5 animate-[fadeIn_.7s_ease-out]">
               {/* Form card */}
               <div className="overflow-hidden rounded-[24px] border border-white/[0.09] bg-[#0a101c]/95 shadow-[0_35px_100px_-40px_rgba(0,0,0,.95)] backdrop-blur-xl">
                 <div className="h-px bg-gradient-to-r from-transparent via-blue-500/70 to-transparent" />
@@ -275,12 +248,7 @@ export default function HomePage() {
               </div>
 
               {/* Preview */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.45, duration: 0.6 }}
-                className="rounded-[24px] border border-white/[0.07] bg-[#090e18]/80 p-5"
-              >
+              <div className="rounded-[24px] border border-white/[0.07] bg-[#090e18]/80 p-5 animate-[fadeUp_.9s_ease-out]">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/25">
@@ -292,7 +260,9 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  <LinkIcon />
+                  <span className="text-white/35">
+                    <LinkIcon />
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-5 rounded-xl border border-white/[0.06] bg-white/[0.018] p-4">
@@ -308,6 +278,7 @@ export default function HomePage() {
                     </p>
 
                     <div className="mt-3 h-2 w-28 rounded-full bg-white/[0.06]" />
+
                     <div className="mt-2 h-2 w-20 rounded-full bg-white/[0.04]" />
 
                     <p className="mt-4 text-[11px] leading-5 text-white/25">
@@ -316,8 +287,8 @@ export default function HomePage() {
                     </p>
                   </div>
                 </div>
-              </motion.div>
-            </motion.section>
+              </div>
+            </section>
           </div>
         </main>
       </div>

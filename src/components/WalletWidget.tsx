@@ -8,6 +8,8 @@ import {
   useReadContract,
   useSwitchChain,
 } from "wagmi";
+import { formatUnits } from "viem";
+
 import { arcTestnet } from "@/lib/chain";
 import { erc20Abi } from "@/lib/erc20";
 import {
@@ -16,7 +18,6 @@ import {
   FAUCET_URL,
 } from "@/lib/config";
 import { shortAddress, formatUsdc } from "@/lib/format";
-import { formatUnits } from "viem";
 
 function WalletIcon({
   name,
@@ -25,19 +26,16 @@ function WalletIcon({
   name: string;
   connectorId?: string;
 }) {
-  const lower = `${name} ${connectorId ?? ""}`.toLowerCase();
+  const lower =
+    `${name} ${connectorId ?? ""}`.toLowerCase();
 
   let content = "W";
 
   if (lower.includes("metamask")) {
     content = "🦊";
-  } else if (
-    lower.includes("coinbase")
-  ) {
+  } else if (lower.includes("coinbase")) {
     content = "C";
-  } else if (
-    lower.includes("walletconnect")
-  ) {
+  } else if (lower.includes("walletconnect")) {
     content = "W";
   } else if (lower.includes("rabby")) {
     content = "R";
@@ -52,9 +50,7 @@ function WalletIcon({
   } else if (lower.includes("okx")) {
     content = "O";
   } else if (name) {
-    content = name
-      .slice(0, 1)
-      .toUpperCase();
+    content = name.slice(0, 1).toUpperCase();
   }
 
   return (
@@ -78,8 +74,7 @@ export function WalletWidget() {
     error,
   } = useConnect();
 
-  const { disconnect } =
-    useDisconnect();
+  const { disconnect } = useDisconnect();
 
   const {
     switchChain,
@@ -116,9 +111,7 @@ export function WalletWidget() {
   });
 
   useEffect(() => {
-    function onClickAway(
-      event: MouseEvent
-    ) {
+    function onClickAway(event: MouseEvent) {
       if (
         menuRef.current &&
         !menuRef.current.contains(
@@ -143,11 +136,8 @@ export function WalletWidget() {
   }, []);
 
   /*
-   * ------------------------------------------------
-   * CONNECTED
-   * ------------------------------------------------
+   * Connected wallet
    */
-
   if (isConnected && !wrongNetwork) {
     return (
       <div
@@ -184,14 +174,13 @@ export function WalletWidget() {
             </span>
           </span>
 
-          <span className="ml-1 text-xs text-white/30 transition-transform group-hover:text-white/60">
+          <span className="ml-1 text-xs text-white/30 transition-colors group-hover:text-white/60">
             {menuOpen ? "⌃" : "⌄"}
           </span>
         </button>
 
         {menuOpen && (
           <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0a0d14]/95 p-1.5 shadow-2xl backdrop-blur-xl">
-
             <div className="px-3 pb-2 pt-2">
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30">
                 Connected wallet
@@ -227,10 +216,7 @@ export function WalletWidget() {
               }}
               className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm text-red-300/80 transition-colors hover:bg-red-400/[0.07] hover:text-red-300"
             >
-              <span>
-                Disconnect
-              </span>
-
+              <span>Disconnect</span>
               <span>×</span>
             </button>
           </div>
@@ -240,19 +226,15 @@ export function WalletWidget() {
   }
 
   /*
-   * ------------------------------------------------
-   * WRONG NETWORK
-   * ------------------------------------------------
+   * Wrong network
    */
-
   if (wrongNetwork) {
     return (
       <button
         type="button"
         onClick={() =>
           switchChain({
-            chainId:
-              arcTestnet.id,
+            chainId: arcTestnet.id,
           })
         }
         disabled={isSwitching}
@@ -268,11 +250,8 @@ export function WalletWidget() {
   }
 
   /*
-   * ------------------------------------------------
-   * CONNECT WALLET
-   * ------------------------------------------------
+   * Connect wallet
    */
-
   return (
     <div
       className="relative"
@@ -300,7 +279,6 @@ export function WalletWidget() {
 
       {menuOpen && (
         <div className="absolute right-0 z-50 mt-3 w-[330px] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0a0d14]/[0.98] shadow-2xl shadow-black/40 backdrop-blur-2xl">
-
           {/* Header */}
           <div className="px-5 pb-4 pt-5">
             <div className="flex items-start justify-between">
@@ -328,7 +306,6 @@ export function WalletWidget() {
 
           {/* Wallet list */}
           <div className="px-2 pb-2">
-
             {connectors.length === 0 ? (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-4 py-4 text-center">
                 <p className="text-sm text-white/60">
@@ -341,56 +318,46 @@ export function WalletWidget() {
                 </p>
               </div>
             ) : (
-              connectors.map(
-                (connector) => (
-                  <button
-                    key={connector.uid}
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => {
-                      connect({
-                        connector,
-                        chainId:
-                          arcTestnet.id,
-                      });
+              connectors.map((connector) => (
+                <button
+                  key={connector.uid}
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    connect({
+                      connector,
+                      chainId:
+                        arcTestnet.id,
+                    });
 
-                      setMenuOpen(
-                        false
-                      );
-                    }}
-                    className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-150 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <WalletIcon
-                      name={
-                        connector.name
-                      }
-                      connectorId={
-                        connector.id
-                      }
-                    />
+                    setMenuOpen(false);
+                  }}
+                  className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-150 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <WalletIcon
+                    name={connector.name}
+                    connectorId={connector.id}
+                  />
 
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-white/90">
-                        {connector.name}
-                      </span>
-
-                      <span className="mt-0.5 block text-[11px] text-white/30">
-                        {connector.name
-                          .toLowerCase()
-                          .includes(
-                            "injected"
-                          )
-                          ? "Browser wallet"
-                          : "EVM wallet"}
-                      </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-white/90">
+                      {connector.name}
                     </span>
 
-                    <span className="text-sm text-white/20 transition-all group-hover:translate-x-0.5 group-hover:text-white/50">
-                      →
+                    <span className="mt-0.5 block text-[11px] text-white/30">
+                      {connector.name
+                        .toLowerCase()
+                        .includes("injected")
+                        ? "Browser wallet"
+                        : "EVM wallet"}
                     </span>
-                  </button>
-                )
-              )
+                  </span>
+
+                  <span className="text-sm text-white/20 transition-all group-hover:translate-x-0.5 group-hover:text-white/50">
+                    →
+                  </span>
+                </button>
+              ))
             )}
           </div>
 
@@ -408,13 +375,16 @@ export function WalletWidget() {
             </div>
           </div>
 
-          {/* Error */}
+          {/* Connection error */}
           {error && (
             <div className="border-t border-red-400/10 bg-red-400/[0.04] px-4 py-3">
               <p className="text-xs leading-4 text-red-300/80">
-               {(error.message ?? "Wallet connection failed.")
-  .split(".")[0]
-  .slice(0, 160)}
+                {String(
+                  error?.message ??
+                    "Wallet connection failed."
+                )
+                  .split(".")[0]
+                  .slice(0, 160)}
               </p>
             </div>
           )}

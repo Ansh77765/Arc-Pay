@@ -111,13 +111,13 @@ export function CreatePaymentForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full space-y-6"
+      className="w-full min-w-0 space-y-5"
     >
-      {/* AMOUNT */}
-      <div className="w-full">
+      {/* Amount */}
+      <div className="w-full min-w-0">
         <label
           htmlFor="amount"
-          className="mb-2.5 block text-sm font-medium text-white/75"
+          className="mb-2 block text-sm font-medium text-white/70"
         >
           Amount
         </label>
@@ -125,16 +125,17 @@ export function CreatePaymentForm() {
         <div
           className="
             flex
-            h-[66px]
+            h-[62px]
             w-full
+            min-w-0
             items-center
             overflow-hidden
             rounded-xl
             border
-            border-white/10
+            border-white/[0.10]
             bg-[#070b13]
             transition-colors
-            focus-within:border-blue-500/70
+            focus-within:border-blue-500/60
           "
         >
           <input
@@ -143,7 +144,7 @@ export function CreatePaymentForm() {
             inputMode="decimal"
             autoComplete="off"
             spellCheck={false}
-            placeholder="0.00"
+            placeholder="25.00"
             value={amount}
             onChange={(e) => {
               const value = e.target.value;
@@ -159,54 +160,45 @@ export function CreatePaymentForm() {
               border: "none",
               outline: "none",
               boxShadow: "none",
-              WebkitAppearance: "none",
               appearance: "none",
+              WebkitAppearance: "none",
             }}
             className="
               m-0
               h-full
               min-w-0
+              w-0
               flex-1
               bg-transparent
-              px-5
+              px-4
               font-mono
-              text-[25px]
+              text-[22px]
               leading-none
               tracking-tight
               text-white
-              placeholder:text-white/25
+              placeholder:text-white/20
             "
           />
 
-          <div
-            className="
-              flex
-              h-full
-              shrink-0
-              items-center
-              border-l
-              border-white/[0.07]
-              px-5
-            "
-          >
-            <span className="text-sm font-semibold text-white/45">
+          <div className="flex h-full shrink-0 items-center border-l border-white/[0.07] px-4">
+            <span className="text-sm font-semibold text-white/40">
               USDC
             </span>
           </div>
         </div>
       </div>
 
-      {/* DESCRIPTION */}
-      <div className="w-full">
-        <div className="mb-2.5 flex items-center justify-between">
+      {/* Description */}
+      <div className="w-full min-w-0">
+        <div className="mb-2 flex items-center justify-between">
           <label
             htmlFor="description"
-            className="text-sm font-medium text-white/75"
+            className="text-sm font-medium text-white/70"
           >
             Description
           </label>
 
-          <span className="text-xs text-white/30">
+          <span className="text-[11px] text-white/25">
             {description.length}/140
           </span>
         </div>
@@ -215,84 +207,82 @@ export function CreatePaymentForm() {
           id="description"
           type="text"
           autoComplete="off"
-          placeholder="e.g. Design consultation — March"
+          placeholder="Invoice for design work"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={140}
           style={{
             outline: "none",
-            boxShadow: "none",
           }}
           className="
-            h-[58px]
+            box-border
+            h-[54px]
             w-full
+            min-w-0
             rounded-xl
             border
-            border-white/10
+            border-white/[0.10]
             bg-[#070b13]
             px-4
             text-sm
             text-white
             transition-colors
-            placeholder:text-white/25
-            focus:border-blue-500/70
+            placeholder:text-white/20
+            focus:border-blue-500/60
           "
         />
       </div>
 
-      {/* RECIPIENT */}
-      <div className="w-full">
-        <label className="mb-2.5 block text-sm font-medium text-white/75">
-          You&apos;ll receive payment at
-        </label>
+      {/* Fixed parameters */}
+      <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5">
+        <p className="text-[10px] font-medium uppercase tracking-[0.13em] text-white/25">
+          Fixed payment network
+        </p>
 
-        <div
-          className="
-            flex
-            min-h-[58px]
-            w-full
-            items-center
-            justify-between
-            gap-4
-            overflow-hidden
-            rounded-xl
-            border
-            border-white/[0.07]
-            bg-white/[0.025]
-            px-4
-          "
-        >
-          <span className="shrink-0 text-sm text-white/40">
-            Connected wallet
+        <div className="mt-2 flex items-center justify-between gap-4">
+          <span className="text-sm text-white/55">
+            Currency
           </span>
 
-          <span className="min-w-0 truncate font-mono text-sm text-white/65">
-            {address
-              ? shortAddress(address)
-              : "—"}
+          <span className="text-sm font-medium text-white/70">
+            USDC
+          </span>
+        </div>
+
+        <div className="mt-1.5 flex items-center justify-between gap-4">
+          <span className="text-sm text-white/55">
+            Network
+          </span>
+
+          <span className="text-sm font-medium text-white/70">
+            Arc Testnet
           </span>
         </div>
       </div>
 
-      {/* ERROR */}
+      {/* Recipient */}
+      <div className="rounded-xl border border-white/[0.07] bg-white/[0.018] px-4 py-3.5">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-sm text-white/40">
+            Receiving wallet
+          </span>
+
+          <span className="min-w-0 truncate font-mono text-xs text-white/60">
+            {address ? shortAddress(address) : "Connect wallet"}
+          </span>
+        </div>
+      </div>
+
+      {/* Error */}
       {formError && (
-        <div
-          className="
-            rounded-xl
-            border
-            border-red-400/20
-            bg-red-400/[0.06]
-            px-4
-            py-3
-          "
-        >
+        <div className="rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3">
           <p className="text-sm leading-5 text-red-300">
             {formError}
           </p>
         </div>
       )}
 
-      {/* SUBMIT BUTTON */}
+      {/* Submit */}
       <button
         type="submit"
         disabled={!canSubmit || submitting}
@@ -303,65 +293,38 @@ export function CreatePaymentForm() {
           group
           relative
           flex
-          h-[60px]
+          h-[58px]
           w-full
           items-center
           justify-center
           overflow-hidden
           rounded-xl
-          bg-gradient-to-r
-          from-[#4f46e5]
-          via-[#4169e1]
-          to-[#2563eb]
+          bg-[#4f6ff5]
           text-sm
           font-semibold
           text-white
-          shadow-[0_12px_30px_-10px_rgba(59,91,219,0.7)]
+          shadow-[0_12px_30px_-12px_rgba(79,111,245,.7)]
           transition-all
           duration-200
           hover:-translate-y-[1px]
-          hover:shadow-[0_16px_35px_-10px_rgba(59,91,219,0.85)]
+          hover:bg-[#5878fa]
+          hover:shadow-[0_16px_35px_-12px_rgba(79,111,245,.8)]
           active:translate-y-0
           disabled:cursor-not-allowed
           disabled:translate-y-0
           disabled:bg-white/[0.07]
-          disabled:bg-none
           disabled:text-white/25
           disabled:shadow-none
         "
       >
         {!submitting && canSubmit && (
-          <span
-            className="
-              pointer-events-none
-              absolute
-              inset-0
-              -translate-x-full
-              bg-gradient-to-r
-              from-transparent
-              via-white/[0.12]
-              to-transparent
-              transition-transform
-              duration-700
-              group-hover:translate-x-full
-            "
-          />
+          <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.10] to-transparent transition-transform duration-700 group-hover:translate-x-full" />
         )}
 
         <span className="relative">
           {submitting ? (
             <span className="flex items-center gap-2.5">
-              <span
-                className="
-                  h-4
-                  w-4
-                  animate-spin
-                  rounded-full
-                  border-2
-                  border-white/30
-                  border-t-white
-                "
-              />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               Creating link…
             </span>
           ) : !isConnected ? (
@@ -375,8 +338,8 @@ export function CreatePaymentForm() {
       </button>
 
       <p className="text-center text-[11px] leading-5 text-white/25">
-        Your payment request is signed by your wallet and
-        settled directly on Arc Testnet.
+        Your wallet signs the request. Funds are sent directly
+        to your wallet — Arc Pay never holds them.
       </p>
     </form>
   );

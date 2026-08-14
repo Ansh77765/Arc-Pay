@@ -26,36 +26,78 @@ function WalletIcon({
   name: string;
   connectorId?: string;
 }) {
-  const lower =
+  const value =
     `${name} ${connectorId ?? ""}`.toLowerCase();
 
-  let content = "W";
+  if (value.includes("metamask")) {
+    return (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-400/20 bg-orange-400/10 text-lg">
+        🦊
+      </span>
+    );
+  }
 
-  if (lower.includes("metamask")) {
-    content = "🦊";
-  } else if (lower.includes("coinbase")) {
-    content = "C";
-  } else if (lower.includes("walletconnect")) {
-    content = "W";
-  } else if (lower.includes("rabby")) {
-    content = "R";
-  } else if (lower.includes("phantom")) {
-    content = "P";
-  } else if (lower.includes("trust")) {
-    content = "T";
-  } else if (lower.includes("rainbow")) {
-    content = "R";
-  } else if (lower.includes("brave")) {
-    content = "B";
-  } else if (lower.includes("okx")) {
-    content = "O";
-  } else if (name) {
-    content = name.slice(0, 1).toUpperCase();
+  if (value.includes("coinbase")) {
+    return (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-400/10 text-sm font-bold text-blue-300">
+        C
+      </span>
+    );
+  }
+
+  if (value.includes("rabby")) {
+    return (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-purple-400/20 bg-purple-400/10 text-sm font-bold text-purple-300">
+        R
+      </span>
+    );
+  }
+
+  if (value.includes("phantom")) {
+    return (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-sm font-bold text-white">
+        P
+      </span>
+    );
+  }
+
+  if (value.includes("trust")) {
+    return (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-400/10 text-sm font-bold text-blue-300">
+        T
+      </span>
+    );
+  }
+
+  if (value.includes("rainbow")) {
+    return (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-pink-400/20 bg-pink-400/10 text-sm font-bold text-pink-300">
+        R
+      </span>
+    );
+  }
+
+  if (value.includes("brave")) {
+    return (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-400/20 bg-orange-400/10 text-sm font-bold text-orange-300">
+        B
+      </span>
+    );
+  }
+
+  if (value.includes("okx")) {
+    return (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-sm font-bold text-white">
+        O
+      </span>
+    );
   }
 
   return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.045] text-base shadow-sm">
-      {content}
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.045] text-sm font-semibold text-white/70">
+      {name
+        ? name.slice(0, 1).toUpperCase()
+        : "W"}
     </span>
   );
 }
@@ -71,10 +113,10 @@ export function WalletWidget() {
     connectors,
     connect,
     isPending,
-    error,
   } = useConnect();
 
-  const { disconnect } = useDisconnect();
+  const { disconnect } =
+    useDisconnect();
 
   const {
     switchChain,
@@ -111,12 +153,15 @@ export function WalletWidget() {
   });
 
   useEffect(() => {
-    function onClickAway(event: MouseEvent) {
+    function handleOutsideClick(
+      event: MouseEvent
+    ) {
+      const target =
+        event.target as Node;
+
       if (
         menuRef.current &&
-        !menuRef.current.contains(
-          event.target as Node
-        )
+        !menuRef.current.contains(target)
       ) {
         setMenuOpen(false);
       }
@@ -124,30 +169,33 @@ export function WalletWidget() {
 
     document.addEventListener(
       "mousedown",
-      onClickAway
+      handleOutsideClick
     );
 
     return () => {
       document.removeEventListener(
         "mousedown",
-        onClickAway
+        handleOutsideClick
       );
     };
   }, []);
 
   /*
-   * Connected wallet
+   * CONNECTED WALLET
    */
+
   if (isConnected && !wrongNetwork) {
     return (
       <div
-        className="relative"
         ref={menuRef}
+        className="relative"
       >
         <button
           type="button"
           onClick={() =>
-            setMenuOpen((value) => !value)
+            setMenuOpen(
+              (value) => !value
+            )
           }
           className="group flex items-center gap-2.5 rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 py-2 transition-all duration-200 hover:border-white/[0.15] hover:bg-white/[0.055]"
         >
@@ -180,7 +228,7 @@ export function WalletWidget() {
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0a0d14]/95 p-1.5 shadow-2xl backdrop-blur-xl">
+          <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0a0d14] p-1.5 shadow-2xl shadow-black/40">
             <div className="px-3 pb-2 pt-2">
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30">
                 Connected wallet
@@ -216,8 +264,13 @@ export function WalletWidget() {
               }}
               className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm text-red-300/80 transition-colors hover:bg-red-400/[0.07] hover:text-red-300"
             >
-              <span>Disconnect</span>
-              <span>×</span>
+              <span>
+                Disconnect
+              </span>
+
+              <span>
+                ×
+              </span>
             </button>
           </div>
         )}
@@ -226,18 +279,20 @@ export function WalletWidget() {
   }
 
   /*
-   * Wrong network
+   * WRONG NETWORK
    */
+
   if (wrongNetwork) {
     return (
       <button
         type="button"
+        disabled={isSwitching}
         onClick={() =>
           switchChain({
-            chainId: arcTestnet.id,
+            chainId:
+              arcTestnet.id,
           })
         }
-        disabled={isSwitching}
         className="inline-flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.07] px-4 py-2.5 text-sm font-medium text-amber-300 transition-all hover:bg-amber-400/[0.11] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
@@ -250,17 +305,20 @@ export function WalletWidget() {
   }
 
   /*
-   * Connect wallet
+   * CONNECT WALLET
    */
+
   return (
     <div
-      className="relative"
       ref={menuRef}
+      className="relative"
     >
       <button
         type="button"
         onClick={() =>
-          setMenuOpen((value) => !value)
+          setMenuOpen(
+            (value) => !value
+          )
         }
         className="group inline-flex items-center gap-2.5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#080b11] shadow-lg shadow-white/[0.08] transition-all duration-200 hover:-translate-y-px hover:bg-white/90 active:translate-y-0"
       >
@@ -278,8 +336,9 @@ export function WalletWidget() {
       </button>
 
       {menuOpen && (
-        <div className="absolute right-0 z-50 mt-3 w-[330px] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0a0d14]/[0.98] shadow-2xl shadow-black/40 backdrop-blur-2xl">
-          {/* Header */}
+        <div className="absolute right-0 z-50 mt-3 w-[330px] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0a0d14] shadow-2xl shadow-black/40">
+          {/* HEADER */}
+
           <div className="px-5 pb-4 pt-5">
             <div className="flex items-start justify-between">
               <div>
@@ -304,64 +363,76 @@ export function WalletWidget() {
             </div>
           </div>
 
-          {/* Wallet list */}
+          {/* WALLET LIST */}
+
           <div className="px-2 pb-2">
             {connectors.length === 0 ? (
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-4 py-4 text-center">
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-4 py-5 text-center">
                 <p className="text-sm text-white/60">
                   No wallet detected
                 </p>
 
-                <p className="mt-1 text-xs text-white/30">
-                  Install an EVM wallet extension
-                  to continue.
+                <p className="mt-1 text-xs leading-5 text-white/30">
+                  Install an EVM wallet
+                  extension to continue.
                 </p>
               </div>
             ) : (
-              connectors.map((connector) => (
-                <button
-                  key={connector.uid}
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => {
-                    connect({
-                      connector,
-                      chainId:
-                        arcTestnet.id,
-                    });
+              connectors.map(
+                (connector) => (
+                  <button
+                    key={connector.uid}
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => {
+                      connect({
+                        connector,
+                        chainId:
+                          arcTestnet.id,
+                      });
 
-                    setMenuOpen(false);
-                  }}
-                  className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-150 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <WalletIcon
-                    name={connector.name}
-                    connectorId={connector.id}
-                  />
+                      setMenuOpen(
+                        false
+                      );
+                    }}
+                    className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-150 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <WalletIcon
+                      name={
+                        connector.name
+                      }
+                      connectorId={
+                        connector.id
+                      }
+                    />
 
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-white/90">
-                      {connector.name}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-white/90">
+                        {connector.name}
+                      </span>
+
+                      <span className="mt-0.5 block text-[11px] text-white/30">
+                        {connector.name
+                          .toLowerCase()
+                          .includes(
+                            "injected"
+                          )
+                          ? "Browser wallet"
+                          : "EVM wallet"}
+                      </span>
                     </span>
 
-                    <span className="mt-0.5 block text-[11px] text-white/30">
-                      {connector.name
-                        .toLowerCase()
-                        .includes("injected")
-                        ? "Browser wallet"
-                        : "EVM wallet"}
+                    <span className="text-sm text-white/20 transition-all group-hover:translate-x-0.5 group-hover:text-white/50">
+                      →
                     </span>
-                  </span>
-
-                  <span className="text-sm text-white/20 transition-all group-hover:translate-x-0.5 group-hover:text-white/50">
-                    →
-                  </span>
-                </button>
-              ))
+                  </button>
+                )
+              )
             )}
           </div>
 
-          {/* Footer */}
+          {/* FOOTER */}
+
           <div className="border-t border-white/[0.06] px-5 py-3.5">
             <div className="flex items-center gap-2">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/10 text-[10px] text-emerald-300">
@@ -369,25 +440,12 @@ export function WalletWidget() {
               </span>
 
               <p className="text-[10px] leading-4 text-white/30">
-                Your wallet stays in your control.
-                Arc Pay never holds your funds.
+                Your wallet stays in your
+                control. Arc Pay never holds
+                your funds.
               </p>
             </div>
           </div>
-
-          {/* Connection error */}
-          {error && (
-            <div className="border-t border-red-400/10 bg-red-400/[0.04] px-4 py-3">
-              <p className="text-xs leading-4 text-red-300/80">
-                {String(
-                  error?.message ??
-                    "Wallet connection failed."
-                )
-                  .split(".")[0]
-                  .slice(0, 160)}
-              </p>
-            </div>
-          )}
         </div>
       )}
     </div>

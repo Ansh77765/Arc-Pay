@@ -2,7 +2,6 @@
 
 import { TopBar } from "@/components/TopBar";
 import { CreatePaymentForm } from "@/components/CreatePaymentForm";
-import { useAccount, useConnect } from "wagmi";
 
 function ShieldIcon() {
   return (
@@ -52,7 +51,8 @@ function LinkIcon() {
 
 function QrPlaceholder() {
   const blocks = [
-    0, 1, 2, 5, 7, 10, 12, 14, 16, 18, 20, 21, 23, 24,
+    0, 1, 2, 5, 7, 10, 12, 14,
+    16, 18, 20, 21, 23, 24,
   ];
 
   return (
@@ -80,17 +80,6 @@ function QrPlaceholder() {
 }
 
 export default function HomePage() {
-  const { isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-
-  function handleConnect() {
-    const connector = connectors[0];
-
-    if (connector) {
-      connect({ connector });
-    }
-  }
-
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#05080f] text-white">
       {/* Background */}
@@ -115,7 +104,8 @@ export default function HomePage() {
 
         <main className="mx-auto max-w-[1380px] px-5 pb-24 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pt-20">
           <div className="grid items-start gap-14 lg:grid-cols-[minmax(0,1fr)_500px] lg:gap-20 xl:gap-28">
-            {/* LEFT SIDE */}
+
+            {/* LEFT */}
             <section className="animate-[fadeUp_.6s_ease-out] pt-2">
               <p className="mb-5 text-[11px] font-medium uppercase tracking-[0.18em] text-blue-400/75">
                 Simple USDC payments
@@ -134,36 +124,17 @@ export default function HomePage() {
                 and receive funds directly in your wallet.
               </p>
 
-              {/* Primary wallet CTA */}
-              {!isConnected && (
-                <div className="mt-9 animate-[fadeUp_.7s_ease-out]">
-                  <button
-                    type="button"
-                    onClick={handleConnect}
-                    className="group inline-flex h-12 items-center gap-2.5 rounded-xl bg-white px-5 text-sm font-semibold text-[#080b12] shadow-[0_12px_35px_-12px_rgba(255,255,255,.45)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/90 active:translate-y-0"
-                  >
-                    Connect wallet
-
-                    <svg
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
-                    >
-                      <path
-                        d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"
-                        stroke="currentColor"
-                        strokeWidth="1.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              )}
+              {/* Wallet action is handled by TopBar / form */}
+              <div className="mt-9">
+                <p className="text-xs text-white/30">
+                  Connect your wallet above to create a payment request.
+                </p>
+              </div>
 
               {/* Compact summary */}
-              <div className="mt-12 max-w-[620px] rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 animate-[fadeUp_.8s_ease-out]">
+              <div className="mt-10 max-w-[620px] rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5">
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.14em] text-white/25">
                       Payment
@@ -214,15 +185,18 @@ export default function HomePage() {
               </div>
             </section>
 
-            {/* RIGHT SIDE */}
+            {/* RIGHT */}
             <section className="space-y-5 animate-[fadeIn_.7s_ease-out]">
-              {/* Form card */}
+
+              {/* Form */}
               <div className="overflow-hidden rounded-[24px] border border-white/[0.09] bg-[#0a101c]/95 shadow-[0_35px_100px_-40px_rgba(0,0,0,.95)] backdrop-blur-xl">
                 <div className="h-px bg-gradient-to-r from-transparent via-blue-500/70 to-transparent" />
 
                 <div className="p-6 sm:p-8">
+
                   <div className="mb-7">
                     <div className="flex items-center justify-between gap-4">
+
                       <div>
                         <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-blue-400/75">
                           Payment request
@@ -236,6 +210,7 @@ export default function HomePage() {
                       <div className="rounded-lg border border-white/[0.07] bg-white/[0.025] px-2.5 py-1.5 text-[10px] font-medium text-white/35">
                         USDC
                       </div>
+
                     </div>
 
                     <p className="mt-2 text-sm leading-6 text-white/35">
@@ -249,7 +224,9 @@ export default function HomePage() {
 
               {/* Preview */}
               <div className="rounded-[24px] border border-white/[0.07] bg-[#090e18]/80 p-5 animate-[fadeUp_.9s_ease-out]">
+
                 <div className="mb-4 flex items-center justify-between">
+
                   <div>
                     <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/25">
                       After you create it
@@ -263,12 +240,15 @@ export default function HomePage() {
                   <span className="text-white/35">
                     <LinkIcon />
                   </span>
+
                 </div>
 
                 <div className="flex items-center gap-5 rounded-xl border border-white/[0.06] bg-white/[0.018] p-4">
+
                   <QrPlaceholder />
 
                   <div className="min-w-0">
+
                     <p className="text-xs text-white/30">
                       Shareable payment request
                     </p>
@@ -285,7 +265,9 @@ export default function HomePage() {
                       A unique link and QR code are generated
                       after your wallet signs the request.
                     </p>
+
                   </div>
+
                 </div>
               </div>
             </section>

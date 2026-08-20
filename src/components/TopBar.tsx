@@ -20,20 +20,20 @@ export function TopBar() {
   const [copied, setCopied] = useState(false);
 
   /*
-   * IMPORTANT:
-   * Keep your existing wallet hook / connection logic here.
+   * TEMPORARY STATE
    *
-   * Replace these two values with the values already used
-   * by your current TopBar.
+   * These are typed explicitly so TypeScript does not infer
+   * the empty string as a literal type.
+   *
+   * We will connect these to your real wallet state next.
    */
-  const connected = false;
-  const address = "";
+  const connected: boolean = false;
+  const address: string = "";
 
   const shortAddress = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : "";
 
-  // Prevent background scrolling while modal is open
   useEffect(() => {
     if (!walletModalOpen) return;
 
@@ -47,12 +47,16 @@ export function TopBar() {
   const copyAddress = async () => {
     if (!address) return;
 
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
 
-    setTimeout(() => {
-      setCopied(false);
-    }, 1500);
+      setTimeout(() => {
+        setCopied(false);
+      }, 1500);
+    } catch {
+      console.error("Unable to copy wallet address");
+    }
   };
 
   const openWalletModal = () => {
@@ -62,9 +66,9 @@ export function TopBar() {
 
   return (
     <>
-      {/* -------------------------------- */}
-      {/* Top navigation                    */}
-      {/* -------------------------------- */}
+      {/* ================================ */}
+      {/* Top Navigation                   */}
+      {/* ================================ */}
 
       <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#07090d]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] max-w-[1320px] items-center justify-between px-5 sm:px-8 lg:px-10">
@@ -100,7 +104,8 @@ export function TopBar() {
           {connected ? (
             <div className="relative">
               <button
-                onClick={() => setAccountMenuOpen(!accountMenuOpen)}
+                type="button"
+                onClick={() => setAccountMenuOpen((value) => !value)}
                 className="flex h-10 items-center gap-2.5 rounded-xl border border-white/[0.09] bg-white/[0.035] px-2.5 pr-3 transition hover:bg-white/[0.06]"
               >
                 <WalletAvatar />
@@ -131,7 +136,7 @@ export function TopBar() {
                   copied={copied}
                   onCopy={copyAddress}
                   onDisconnect={() => {
-                    // Keep your existing disconnect function here.
+                    // Connect your existing disconnect function here.
                     setAccountMenuOpen(false);
                   }}
                 />
@@ -139,6 +144,7 @@ export function TopBar() {
             </div>
           ) : (
             <button
+              type="button"
               onClick={openWalletModal}
               className="group flex h-10 items-center gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.045] px-3.5 text-xs font-semibold text-white transition hover:border-white/[0.16] hover:bg-white/[0.07]"
             >
@@ -152,37 +158,23 @@ export function TopBar() {
         </div>
       </header>
 
-      {/* -------------------------------- */}
-      {/* Wallet modal                      */}
-      {/* -------------------------------- */}
+      {/* ================================ */}
+      {/* Wallet Modal                     */}
+      {/* ================================ */}
 
       {walletModalOpen && (
         <WalletModal
           onClose={() => setWalletModalOpen(false)}
           onWalletSelect={(wallet) => {
             /*
-             * IMPORTANT:
+             * TEMPORARY:
              *
-             * Connect your existing wallet functions here.
-             *
-             * Example:
-             *
-             * if (wallet === "metamask") {
-             *   await connectMetaMask();
-             * }
-             *
-             * if (wallet === "coinbase") {
-             *   await connectCoinbase();
-             * }
-             *
-             * if (wallet === "walletconnect") {
-             *   await connectWalletConnect();
-             * }
+             * Connect these buttons to your existing wallet
+             * connection functions.
              */
 
             console.log("Selected wallet:", wallet);
 
-            // Close for now.
             setWalletModalOpen(false);
           }}
         />
@@ -192,7 +184,7 @@ export function TopBar() {
 }
 
 /* ===================================== */
-/* Wallet modal                          */
+/* Wallet Modal                          */
 /* ===================================== */
 
 function WalletModal({
@@ -211,6 +203,7 @@ function WalletModal({
     >
       {/* Backdrop */}
       <button
+        type="button"
         aria-label="Close wallet modal"
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-black/70 backdrop-blur-md"
@@ -243,6 +236,7 @@ function WalletModal({
             </div>
 
             <button
+              type="button"
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-white/25 transition hover:bg-white/[0.05] hover:text-white/60"
             >
@@ -254,7 +248,6 @@ function WalletModal({
         {/* Wallet list */}
         <div className="p-3">
           <WalletOption
-            wallet="metamask"
             name="MetaMask"
             description="Connect using MetaMask"
             logo={<MetaMaskLogo />}
@@ -262,7 +255,6 @@ function WalletModal({
           />
 
           <WalletOption
-            wallet="coinbase"
             name="Coinbase Wallet"
             description="Connect using Coinbase Wallet"
             logo={<CoinbaseLogo />}
@@ -270,7 +262,6 @@ function WalletModal({
           />
 
           <WalletOption
-            wallet="walletconnect"
             name="WalletConnect"
             description="Connect with any compatible wallet"
             logo={<WalletConnectLogo />}
@@ -278,7 +269,6 @@ function WalletModal({
           />
 
           <WalletOption
-            wallet="rabby"
             name="Rabby Wallet"
             description="Connect using Rabby"
             logo={<RabbyLogo />}
@@ -323,7 +313,7 @@ function WalletModal({
 }
 
 /* ===================================== */
-/* Wallet option                         */
+/* Wallet Option                         */
 /* ===================================== */
 
 function WalletOption({
@@ -332,7 +322,6 @@ function WalletOption({
   logo,
   onClick,
 }: {
-  wallet: string;
   name: string;
   description: string;
   logo: React.ReactNode;
@@ -340,15 +329,14 @@ function WalletOption({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="group flex w-full items-center gap-3 rounded-2xl p-3.5 text-left transition hover:bg-white/[0.045] active:scale-[0.99]"
     >
-      {/* Logo */}
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] shadow-inner">
         {logo}
       </div>
 
-      {/* Text */}
       <div className="min-w-0 flex-1">
         <div className="text-[12px] font-semibold text-white/75 transition group-hover:text-white">
           {name}
@@ -359,7 +347,6 @@ function WalletOption({
         </div>
       </div>
 
-      {/* Arrow */}
       <div className="flex h-7 w-7 items-center justify-center rounded-lg text-white/15 transition group-hover:bg-white/[0.05] group-hover:text-white/50">
         <ArrowRight size={14} strokeWidth={1.7} />
       </div>
@@ -368,7 +355,7 @@ function WalletOption({
 }
 
 /* ===================================== */
-/* Wallet logos                          */
+/* Wallet Logos                          */
 /* ===================================== */
 
 function MetaMaskLogo() {
@@ -408,7 +395,7 @@ function RabbyLogo() {
 }
 
 /* ===================================== */
-/* Connected wallet avatar               */
+/* Connected Wallet Avatar               */
 /* ===================================== */
 
 function WalletAvatar() {
@@ -420,7 +407,7 @@ function WalletAvatar() {
 }
 
 /* ===================================== */
-/* Account menu                          */
+/* Account Menu                          */
 /* ===================================== */
 
 function AccountMenu({
@@ -476,6 +463,10 @@ function AccountMenu({
   );
 }
 
+/* ===================================== */
+/* Account Action                        */
+/* ===================================== */
+
 function AccountAction({
   icon,
   label,
@@ -489,6 +480,7 @@ function AccountAction({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] font-medium transition ${
         danger
@@ -515,6 +507,7 @@ function NavItem({
 }) {
   return (
     <button
+      type="button"
       className={`rounded-lg px-3.5 py-2 text-[11px] font-medium transition ${
         active
           ? "bg-white/[0.06] text-white/80"

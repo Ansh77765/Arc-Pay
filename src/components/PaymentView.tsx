@@ -51,16 +51,13 @@ import {
 import { verifyInvoiceSignature } from "@/lib/paymentRequest";
 
 import { WalletWidget } from "./WalletWidget";
+import { CopyButton } from "./CopyButton";
 
 import type { Invoice } from "@/types/invoice";
 
 import Link from "next/link";
 
 const PAYMENT_DURATION = 10 * 60 * 1000;
-
-/* ===============================================================
-   PAYMENT VIEW
-   =============================================================== */
 
 export function PaymentView({
   invoice,
@@ -116,19 +113,6 @@ export function PaymentView({
     useState("");
 
   /* =============================================================
-     NETWORK
-     ============================================================= */
-
-  const onArcTestnet =
-    isConnected &&
-    chainId === arcTestnet.id;
-
-  const isRecipient =
-    Boolean(address) &&
-    address?.toLowerCase() ===
-      invoice.recipient.toLowerCase();
-
-  /* =============================================================
      TIMER
      ============================================================= */
 
@@ -175,6 +159,19 @@ export function PaymentView({
     timeLeft <= 0;
 
   /* =============================================================
+     NETWORK
+     ============================================================= */
+
+  const onArcTestnet =
+    isConnected &&
+    chainId === arcTestnet.id;
+
+  const isRecipient =
+    Boolean(address) &&
+    address?.toLowerCase() ===
+      invoice.recipient.toLowerCase();
+
+  /* =============================================================
      BALANCE
      ============================================================= */
 
@@ -197,7 +194,7 @@ export function PaymentView({
   });
 
   /* =============================================================
-     PERMIT2 ALLOWANCE
+     ALLOWANCE
      ============================================================= */
 
   const {
@@ -297,7 +294,7 @@ export function PaymentView({
   }, []);
 
   /* =============================================================
-     INVOICE VERIFICATION
+     VERIFY INVOICE
      ============================================================= */
 
   useEffect(() => {
@@ -373,9 +370,7 @@ export function PaymentView({
       );
 
     return () => {
-      window.clearInterval(
-        interval
-      );
+      window.clearInterval(interval);
     };
   }, [
     scanForPayment,
@@ -404,21 +399,17 @@ export function PaymentView({
         });
 
       if (publicClient) {
-        await publicClient.waitForTransactionReceipt(
-          {
-            hash,
-          }
-        );
+        await publicClient.waitForTransactionReceipt({
+          hash,
+        });
       }
 
       const updated =
         await refetchAllowance();
 
       if (
-        updated.data ===
-          undefined ||
-        updated.data <
-          requiredAmount
+        updated.data === undefined ||
+        updated.data < requiredAmount
       ) {
         setError(
           "USDC approval was not confirmed. Please try again."
@@ -446,10 +437,7 @@ export function PaymentView({
         setError(
           message
             .split("\n")[0]
-            ?.slice(
-              0,
-              180
-            ) ||
+            ?.slice(0, 180) ||
             "Approval failed."
         );
       }
@@ -522,10 +510,8 @@ export function PaymentView({
           await refetchAllowance();
 
         if (
-          updated.data ===
-            undefined ||
-          updated.data <
-            requiredAmount
+          updated.data === undefined ||
+          updated.data < requiredAmount
         ) {
           setError(
             "Permit2 approval is still insufficient."
@@ -534,8 +520,6 @@ export function PaymentView({
         }
       }
 
-      /* Never allow the Permit2 signature
-         to outlive the payment request. */
       const remainingSeconds =
         Math.max(
           1,
@@ -618,11 +602,9 @@ export function PaymentView({
       setConfirming(true);
       setStatus("pending");
 
-      await publicClient.waitForTransactionReceipt(
-        {
-          hash,
-        }
-      );
+      await publicClient.waitForTransactionReceipt({
+        hash,
+      });
 
       const verified =
         await verifyPaymentTx(
@@ -684,10 +666,7 @@ export function PaymentView({
         setError(
           message
             .split("\n")[0]
-            ?.slice(
-              0,
-              220
-            ) ||
+            ?.slice(0, 220) ||
             "Transaction failed."
         );
       }
@@ -697,13 +676,13 @@ export function PaymentView({
   }
 
   /* =============================================================
-     PAGE
+     RENDER
      ============================================================= */
 
   return (
     <div className="min-h-screen bg-white text-[#111111]">
 
-      {/* TOP BAR */}
+      {/* HEADER */}
 
       <header className="border-b border-[#E7E7EA] bg-white">
         <div className="mx-auto flex h-[68px] max-w-[1180px] items-center justify-between px-5 sm:px-8">
@@ -736,8 +715,6 @@ export function PaymentView({
       {/* MAIN */}
 
       <main className="mx-auto max-w-[720px] px-5 pb-20 pt-8 sm:px-8 sm:pt-12">
-
-        {/* TOP */}
 
         <div className="mb-5 flex items-center justify-between gap-3">
 
@@ -775,7 +752,7 @@ export function PaymentView({
           </span>
         </div>
 
-        {/* CARD */}
+        {/* PAYMENT CARD */}
 
         <section className="overflow-hidden rounded-[24px] border border-[#E7E7EA] bg-white shadow-[0_20px_60px_-35px_rgba(0,0,0,.18)]">
 
@@ -788,7 +765,6 @@ export function PaymentView({
               <div className="min-w-0">
 
                 <div className="flex items-center gap-2">
-
                   <span className="h-2 w-2 rounded-full bg-[#5B72D8]" />
 
                   <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#85868E]">
@@ -812,12 +788,8 @@ export function PaymentView({
               </div>
 
               <PaymentCountdown
-                timeLeft={
-                  timeLeft
-                }
-                expired={
-                  requestExpired
-                }
+                timeLeft={timeLeft}
+                expired={requestExpired}
               />
             </div>
           </div>
@@ -897,7 +869,7 @@ export function PaymentView({
 
           <div className="border-t border-[#EEEEF1]" />
 
-          {/* ACTION AREA */}
+          {/* ACTION */}
 
           <div className="p-6 sm:p-8">
 
@@ -918,8 +890,7 @@ export function PaymentView({
                 </p>
 
                 <p className="mt-1 text-[11px] text-[#85868E]">
-                  Your payment has been verified
-                  on-chain.
+                  Your payment has been verified on-chain.
                 </p>
 
                 <a
@@ -928,7 +899,7 @@ export function PaymentView({
                   )}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-5 inline-flex items-center gap-2 rounded-[11px] border border-[#DCEDE3] bg-white px-3.5 py-2.5 font-mono text-[10px] font-medium text-[#31A66A] hover:bg-[#F5FBF7]"
+                  className="mt-5 inline-flex items-center gap-2 rounded-[11px] border border-[#DCEDE3] bg-white px-3.5 py-2.5 font-mono text-[10px] font-medium text-[#31A66A]"
                 >
                   {shortHash(
                     payment.txHash
@@ -1021,8 +992,7 @@ export function PaymentView({
                   </p>
 
                   <p className="mt-1 text-[10px] leading-5 text-[#A47A3A]">
-                    Switch your wallet to Arc Testnet
-                    to continue.
+                    Switch your wallet to Arc Testnet to continue.
                   </p>
                 </div>
 
@@ -1056,8 +1026,7 @@ export function PaymentView({
                 </p>
 
                 <p className="mt-1 text-[10px] leading-5 text-[#999AA2]">
-                  Checking the signed request before
-                  allowing payment.
+                  Checking the signed request before allowing payment.
                 </p>
               </div>
 
@@ -1154,8 +1123,8 @@ export function PaymentView({
 
                   <p className="max-w-[400px] text-center text-[9px] leading-5 text-[#999AA2]">
                     Your wallet signs the payment.
-                    Funds are sent directly to the
-                    recipient — Arc Pay never holds them.
+                    Funds are sent directly to the recipient —
+                    Arc Pay never holds them.
                   </p>
                 </div>
 
@@ -1181,8 +1150,7 @@ export function PaymentView({
                       </div>
 
                       <p className="mt-1 text-[9px] text-[#A47A3A]">
-                        Add more USDC to complete this
-                        payment.
+                        Add more USDC to complete this payment.
                       </p>
                     </div>
                   )}
@@ -1203,8 +1171,6 @@ export function PaymentView({
             )}
           </div>
         </section>
-
-        {/* FOOTER */}
 
         <div className="mt-5 flex items-center justify-center gap-2 text-[9px] text-[#A0A1A8]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#31A66A]" />
@@ -1310,6 +1276,7 @@ function PaymentCountdown({
         <svg
           viewBox="0 0 44 44"
           className="h-11 w-11 -rotate-90"
+          aria-hidden="true"
         >
           <circle
             cx="22"

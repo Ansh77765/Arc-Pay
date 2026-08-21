@@ -3,18 +3,33 @@
 import { useState } from "react";
 import { useAccount, usePublicClient, useSignTypedData } from "wagmi";
 import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  CheckCircle2,
+  CircleAlert,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
+
 import { arcTestnet } from "@/lib/chain";
+
 import {
   generateInvoiceId,
   generateInvoiceNonce,
   encodeInvoice,
 } from "@/lib/invoice";
+
 import {
   invoiceDomain,
   invoiceMessage,
   invoiceTypes,
 } from "@/lib/paymentRequest";
-import { isValidAmount, shortAddress } from "@/lib/format";
+
+import {
+  isValidAmount,
+  shortAddress,
+} from "@/lib/format";
+
 import type { Invoice } from "@/types/invoice";
 
 export function CreatePaymentForm() {
@@ -31,7 +46,8 @@ export function CreatePaymentForm() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] =
+    useState<string | null>(null);
 
   const onArcTestnet =
     isConnected && chainId === arcTestnet.id;
@@ -43,6 +59,7 @@ export function CreatePaymentForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     setFormError(null);
 
     if (!address) {
@@ -51,7 +68,9 @@ export function CreatePaymentForm() {
     }
 
     if (!isValidAmount(amount)) {
-      setFormError("Enter a valid USDC amount greater than 0.");
+      setFormError(
+        "Enter a valid USDC amount greater than 0."
+      );
       return;
     }
 
@@ -74,7 +93,9 @@ export function CreatePaymentForm() {
         id,
         recipient: address,
         amount: amount.trim(),
-        description: description.trim().slice(0, 140),
+        description: description
+          .trim()
+          .slice(0, 140),
         createdAt: Date.now(),
         chainId: arcTestnet.id,
         fromBlock: Number(fromBlock),
@@ -82,19 +103,23 @@ export function CreatePaymentForm() {
         signature: "0x",
       };
 
-      const signature = await signTypedDataAsync({
-        domain: invoiceDomain(invoice.chainId),
-        types: invoiceTypes,
-        primaryType: "PaymentRequest",
-        message: invoiceMessage(invoice),
-      });
+      const signature =
+        await signTypedDataAsync({
+          domain: invoiceDomain(
+            invoice.chainId
+          ),
+          types: invoiceTypes,
+          primaryType: "PaymentRequest",
+          message: invoiceMessage(invoice),
+        });
 
       const signedInvoice = {
         ...invoice,
         signature,
       };
 
-      const token = encodeInvoice(signedInvoice);
+      const token =
+        encodeInvoice(signedInvoice);
 
       router.push(`/pay/${token}`);
     } catch (err) {
@@ -111,31 +136,27 @@ export function CreatePaymentForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full min-w-0 space-y-4"
+      className="w-full space-y-6"
     >
-      {/* =========================================================
+      {/* =====================================================
           AMOUNT
-         ========================================================= */}
+         ===================================================== */}
 
-      <div className="w-full min-w-0">
-
-        <div className="mb-2 flex items-center justify-between">
+      <div>
+        <div className="mb-2.5 flex items-center justify-between">
           <label
             htmlFor="amount"
-            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45"
+            className="text-[12px] font-medium text-[#33343A]"
           >
             Amount
           </label>
 
-          <span className="rounded-full border border-blue-400/10 bg-blue-500/[0.07] px-2.5 py-1 text-[9px] font-bold tracking-wide text-blue-300/80">
+          <span className="rounded-full bg-[#F5F7FF] px-2.5 py-1 text-[9px] font-semibold text-[#5B72D8]">
             USDC
           </span>
         </div>
 
-        <div className="group relative flex h-[72px] w-full min-w-0 items-center overflow-hidden rounded-2xl border border-white/[0.08] bg-[#070d17]/90 shadow-[inset_0_1px_0_rgba(255,255,255,.025),0_10px_30px_-20px_rgba(0,0,0,.8)] transition-all duration-300 focus-within:border-blue-400/40 focus-within:shadow-[0_0_0_4px_rgba(59,130,246,.06),0_15px_40px_-25px_rgba(37,99,235,.4)]">
-
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-500/[0.025] via-transparent to-cyan-400/[0.025]" />
-
+        <div className="flex h-[68px] items-center overflow-hidden rounded-[14px] border border-[#E2E2E6] bg-white transition focus-within:border-[#B9BCC5]">
           <input
             id="amount"
             type="text"
@@ -154,51 +175,39 @@ export function CreatePaymentForm() {
                 setAmount(value);
               }
             }}
-            style={{
-              border: "none",
-              outline: "none",
-              boxShadow: "none",
-              appearance: "none",
-              WebkitAppearance: "none",
-            }}
-            className="relative z-10 m-0 h-full min-w-0 w-0 flex-1 bg-transparent px-5 font-mono text-[27px] font-semibold leading-none tracking-[-0.045em] text-white placeholder:text-white/[0.12]"
+            className="h-full min-w-0 flex-1 bg-transparent px-5 text-[27px] font-semibold tracking-[-0.045em] text-[#111111] outline-none placeholder:text-[#C4C5CA]"
           />
 
-          <div className="relative z-10 flex h-full shrink-0 items-center border-l border-white/[0.06] bg-white/[0.018] px-5">
-
+          <div className="flex h-full items-center border-l border-[#EEEEF1] px-5">
             <div className="flex items-center gap-2">
-
-              <span className="h-2 w-2 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,.65)]" />
-
-              <span className="text-[12px] font-bold text-white/55">
-                USDC
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F1F2F4] text-[9px] font-bold text-[#55565D]">
+                $
               </span>
 
+              <span className="text-[12px] font-semibold text-[#55565D]">
+                USDC
+              </span>
             </div>
-
           </div>
         </div>
       </div>
 
-      {/* =========================================================
+      {/* =====================================================
           DESCRIPTION
-         ========================================================= */}
+         ===================================================== */}
 
-      <div className="w-full min-w-0">
-
-        <div className="mb-2 flex items-center justify-between">
-
+      <div>
+        <div className="mb-2.5 flex items-center justify-between">
           <label
             htmlFor="description"
-            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45"
+            className="text-[12px] font-medium text-[#33343A]"
           >
             Description
           </label>
 
-          <span className="font-mono text-[9px] tabular-nums text-white/20">
+          <span className="text-[10px] text-[#A0A1A8]">
             {description.length}/140
           </span>
-
         </div>
 
         <input
@@ -211,60 +220,35 @@ export function CreatePaymentForm() {
             setDescription(e.target.value)
           }
           maxLength={140}
-          style={{
-            outline: "none",
-          }}
-          className="box-border h-[56px] w-full min-w-0 rounded-2xl border border-white/[0.08] bg-[#070d17]/90 px-4 text-[12px] font-medium text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,.02)] transition-all duration-300 placeholder:text-white/[0.12] focus:border-blue-400/35 focus:bg-[#09101c] focus:shadow-[0_0_0_4px_rgba(59,130,246,.05)]"
+          className="h-[54px] w-full rounded-[14px] border border-[#E2E2E6] bg-white px-4 text-[12px] font-medium text-[#33343A] outline-none transition placeholder:text-[#B4B5BB] focus:border-[#B9BCC5]"
         />
       </div>
 
-      {/* =========================================================
+      {/* =====================================================
           PAYMENT DETAILS
-         ========================================================= */}
+         ===================================================== */}
 
-      <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.018]">
-
-        <div className="flex items-center gap-3 border-b border-white/[0.055] px-4 py-3.5">
-
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-xl border border-blue-400/10 bg-blue-500/[0.08] text-blue-300">
-
-            <span className="absolute inset-0 rounded-xl bg-blue-500/[0.08] blur-md" />
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="relative h-4 w-4"
-              aria-hidden="true"
-            >
-              <path
-                d="M12 3.5 19 6v5.2c0 4.2-2.7 7.5-7 9.3-4.3-1.8-7-5.1-7-9.3V6l7-2.5Z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-
-              <path
-                d="m8.8 12 2.1 2.1 4.4-4.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+      <div className="overflow-hidden rounded-[16px] border border-[#E8E8EB] bg-white">
+        <div className="flex items-center gap-3 border-b border-[#EEEEF1] px-4 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F5F5F6] text-[#55565D]">
+            <ShieldCheck
+              size={17}
+              strokeWidth={1.6}
+            />
           </div>
 
           <div>
-            <p className="text-[11px] font-semibold text-white/65">
+            <p className="text-[12px] font-semibold text-[#33343A]">
               Payment details
             </p>
 
-            <p className="mt-0.5 text-[9px] text-white/25">
+            <p className="mt-0.5 text-[10px] text-[#9A9BA2]">
               Fixed for this request
             </p>
           </div>
         </div>
 
-        <div className="space-y-3 px-4 py-4">
-
+        <div className="space-y-4 px-4 py-4">
           <DetailRow
             label="Currency"
             value="USDC"
@@ -274,11 +258,7 @@ export function CreatePaymentForm() {
             label="Network"
             value={
               <span className="flex items-center gap-2">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-blue-400/30" />
-                  <span className="relative h-1.5 w-1.5 rounded-full bg-blue-400" />
-                </span>
-
+                <span className="h-1.5 w-1.5 rounded-full bg-[#31A66A]" />
                 Arc Testnet
               </span>
             }
@@ -287,183 +267,116 @@ export function CreatePaymentForm() {
           <DetailRow
             label="Settlement"
             value={
-              <span className="text-emerald-300/70">
+              <span className="text-[#31A66A]">
                 Direct wallet payment
               </span>
             }
           />
-
         </div>
       </div>
 
-      {/* =========================================================
+      {/* =====================================================
           RECEIVING WALLET
-         ========================================================= */}
+         ===================================================== */}
 
-      <div className="group rounded-2xl border border-white/[0.07] bg-white/[0.018] p-4 transition-all duration-300 hover:border-blue-400/[0.12] hover:bg-blue-500/[0.018]">
-
+      <div className="rounded-[16px] border border-[#E8E8EB] bg-white p-4">
         <div className="flex items-center gap-3">
-
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-blue-500/[0.06] text-blue-300/70">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-5 w-5"
-              aria-hidden="true"
-            >
-              <path
-                d="M5 7.5A2.5 2.5 0 0 1 7.5 5H19a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H7.5A2.5 2.5 0 0 1 5 16.5v-9Z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-
-              <path
-                d="M5 8h13.5A1.5 1.5 0 0 1 20 9.5V14h-4.5a2.5 2.5 0 1 1 0-5H20"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-
-              <circle
-                cx="15.5"
-                cy="11.5"
-                r=".7"
-                fill="currentColor"
-              />
-            </svg>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F5F5F6] text-[#55565D]">
+            <Wallet
+              size={17}
+              strokeWidth={1.7}
+            />
           </div>
 
           <div className="min-w-0 flex-1">
-
-            <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/25">
+            <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#9A9BA2]">
               Receiving wallet
-            </div>
+            </p>
 
-            <div className="mt-1.5 truncate font-mono text-[11px] font-medium text-white/55">
+            <p className="mt-1 truncate font-mono text-[11px] font-medium text-[#55565D]">
               {address
                 ? shortAddress(address)
                 : "Connect wallet"}
-            </div>
+            </p>
           </div>
 
           {address && (
-            <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/10 bg-emerald-400/[0.06] px-2.5 py-1 text-[9px] font-semibold text-emerald-300/70">
-
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.45)]" />
-
+            <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#F0FAF4] px-2.5 py-1 text-[9px] font-semibold text-[#31A66A]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#31A66A]" />
               Connected
             </span>
           )}
         </div>
       </div>
 
-      {/* =========================================================
+      {/* =====================================================
           ERROR
-         ========================================================= */}
+         ===================================================== */}
 
       {formError && (
-        <div className="flex items-start gap-3 rounded-2xl border border-red-400/15 bg-red-500/[0.05] px-4 py-3.5">
+        <div className="flex items-start gap-3 rounded-[14px] border border-[#F2D5D5] bg-[#FFF8F8] px-4 py-3.5">
+          <CircleAlert
+            size={17}
+            className="mt-0.5 shrink-0 text-[#D85C5C]"
+          />
 
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-400/10 bg-red-500/[0.08] text-[10px] font-bold text-red-300">
-            !
-          </div>
-
-          <div className="min-w-0">
-
-            <p className="text-[11px] font-semibold text-red-300/90">
+          <div>
+            <p className="text-[11px] font-semibold text-[#B84D4D]">
               Unable to create request
             </p>
 
-            <p className="mt-0.5 text-[10px] leading-5 text-red-300/55">
+            <p className="mt-1 text-[10px] leading-5 text-[#B76A6A]">
               {formError}
             </p>
-
           </div>
         </div>
       )}
 
-      {/* =========================================================
+      {/* =====================================================
           CREATE BUTTON
-         ========================================================= */}
+         ===================================================== */}
 
       <button
         type="submit"
         disabled={!canSubmit || submitting}
-        style={{
-          outline: "none",
-        }}
-        className="aurora-button group relative flex h-[60px] w-full items-center justify-center overflow-hidden rounded-2xl border border-blue-300/[0.12] bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-[13px] font-bold text-white shadow-[0_14px_35px_-15px_rgba(37,99,235,.75)] transition-all duration-300 hover:-translate-y-[1px] hover:shadow-[0_18px_42px_-14px_rgba(37,99,235,.85)] active:translate-y-0 disabled:cursor-not-allowed disabled:translate-y-0 disabled:border-white/[0.05] disabled:bg-white/[0.06] disabled:text-white/20 disabled:shadow-none"
+        className="group flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#111111] text-[12px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
       >
-
-        {/* moving shine */}
-        {!submitting && canSubmit && (
+        {submitting ? (
           <>
-            <span className="pointer-events-none absolute inset-y-0 left-[-80%] w-[55%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/[0.18] to-transparent transition-transform duration-1000 group-hover:translate-x-[340%]" />
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            Creating link…
+          </>
+        ) : !isConnected ? (
+          "Connect your wallet to continue"
+        ) : !onArcTestnet ? (
+          "Switch to Arc Testnet to continue"
+        ) : (
+          <>
+            Create payment link
 
-            <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-blue-700/10 via-transparent to-white/[0.08]" />
+            <ArrowRight
+              size={15}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
           </>
         )}
-
-        <span className="relative z-10 flex items-center justify-center">
-
-          {submitting ? (
-            <span className="flex items-center gap-2.5">
-
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/25 border-t-white" />
-
-              Creating link…
-
-            </span>
-          ) : !isConnected ? (
-            "Connect your wallet to continue"
-          ) : !onArcTestnet ? (
-            "Switch to Arc Testnet to continue"
-          ) : (
-            <>
-              Create payment link
-
-              <span className="ml-2 text-white/60 transition-transform duration-200 group-hover:translate-x-1">
-                →
-              </span>
-            </>
-          )}
-
-        </span>
       </button>
 
-      {/* =========================================================
+      {/* =====================================================
           SECURITY
-         ========================================================= */}
+         ===================================================== */}
 
-      <div className="flex items-start justify-center gap-2 px-3">
+      <div className="flex items-start justify-center gap-2 px-4">
+        <CheckCircle2
+          size={14}
+          className="mt-0.5 shrink-0 text-[#8E929A]"
+        />
 
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          className="mt-0.5 h-4 w-4 shrink-0 text-blue-400/60"
-          aria-hidden="true"
-        >
-          <path
-            d="M12 3.5 19 6v5.2c0 4.2-2.7 7.5-7 9.3-4.3-1.8-7-5.1-7-9.3V6l7-2.5Z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-
-          <path
-            d="m8.8 12 2.1 2.1 4.4-4.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-
-        <p className="max-w-[330px] text-center text-[10px] leading-5 text-white/20">
+        <p className="max-w-[360px] text-center text-[10px] leading-5 text-[#999AA2]">
           Your wallet signs the request. Funds are
           sent directly to your wallet — Arc Pay
           never holds them.
         </p>
-
       </div>
     </form>
   );
@@ -482,17 +395,13 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="text-[10px] font-medium text-white/25">
+      <span className="text-[10px] font-medium text-[#96979F]">
         {label}
       </span>
 
-      <span className="text-[10px] font-semibold text-white/55">
+      <span className="text-[10px] font-semibold text-[#55565D]">
         {value}
       </span>
     </div>
   );
 }
-
-/* ===============================================================
-   LOCAL ANIMATION
-   =============================================================== */

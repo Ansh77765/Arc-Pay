@@ -23,19 +23,12 @@ import {
 import { arcTestnet } from "@/lib/chain";
 import { explorerAddressUrl } from "@/lib/config";
 
-type Eip6963ProviderInfo = {
+type WalletInfo = {
   uuid: string;
   name: string;
   icon: string;
   rdns: string;
 };
-
-type Eip6963ProviderDetail = {
-  info: Eip6963ProviderInfo;
-  provider: unknown;
-};
-
-type Eip6963Announcement = CustomEvent<Eip6963ProviderDetail>;
 
 export function TopBar() {
   const [accountMenuOpen, setAccountMenuOpen] =
@@ -46,8 +39,8 @@ export function TopBar() {
   const [walletModalOpen, setWalletModalOpen] =
     useState(false);
 
-  const [walletIcons, setWalletIcons] =
-    useState<Record<string, string>>({});
+  const [wallets, setWallets] =
+    useState<WalletInfo[]>([]);
 
   const {
     address,
@@ -81,38 +74,44 @@ export function TopBar() {
     : "";
 
   /*
-   * EIP-6963 wallet discovery.
+   * REAL EIP-6963 WALLET DISCOVERY
    *
-   * Browser wallets announce their official metadata,
-   * including their real icon URL.
+   * Wallet extensions announce their own:
+   * - name
+   * - icon
+   * - rdns
+   * - uuid
    */
   useEffect(() => {
-    const handleAnnouncement = (
-      event: Event
-    ) => {
-      const customEvent =
-        event as Eip6963Announcement;
+    const discovered = new Map<
+      string,
+      WalletInfo
+    >();
 
-      const info = customEvent.detail?.info;
+    const announce = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          info: WalletInfo;
+        }>
+      ).detail;
 
-      if (!info?.uuid || !info.icon) {
-        return;
-      }
+      if (!detail?.info?.uuid) return;
 
-      setWalletIcons((current) => ({
-        ...current,
-        [info.uuid]: info.icon,
-      }));
+      discovered.set(
+        detail.info.uuid,
+        detail.info
+      );
+
+      setWallets(
+        Array.from(discovered.values())
+      );
     };
 
     window.addEventListener(
       "eip6963:announceProvider",
-      handleAnnouncement
+      announce
     );
 
-    /*
-     * Ask installed wallets to announce themselves.
-     */
     window.dispatchEvent(
       new Event("eip6963:requestProvider")
     );
@@ -120,28 +119,24 @@ export function TopBar() {
     return () => {
       window.removeEventListener(
         "eip6963:announceProvider",
-        handleAnnouncement
+        announce
       );
     };
   }, []);
 
-  /*
-   * When connected, close the wallet picker.
-   */
   useEffect(() => {
     if (connected) {
       setWalletModalOpen(false);
     }
   }, [connected]);
 
-  /*
-   * Copy wallet address.
-   */
   const copyAddress = async () => {
     if (!address) return;
 
     try {
-      await navigator.clipboard.writeText(address);
+      await navigator.clipboard.writeText(
+        address
+      );
 
       setCopied(true);
 
@@ -156,17 +151,24 @@ export function TopBar() {
   };
 
   /*
-   * IMPORTANT:
-   * Do NOT force Arc Testnet here.
+   * Use the existing injected connector.
    *
-   * This is the connection path that was
-   * working for you.
+   * We deliberately do NOT force chainId here.
+   * This is the connection flow that you confirmed works.
    */
-  const handleConnect = (
-    connector: (typeof connectors)[number]
-  ) => {
+  const handleConnect = () => {
+    const injectedConnector =
+      connectors.find(
+        (connector) =>
+          connector.id === "injected"
+      );
+
+    if (!injectedConnector) {
+      return;
+    }
+
     connect({
-      connector,
+      connector: injectedConnector,
     });
   };
 
@@ -175,66 +177,9 @@ export function TopBar() {
     setAccountMenuOpen(false);
   };
 
-  /*
-   * Try to match a Wagmi connector with the
-   * EIP-6963 wallet metadata.
-   */
-  const getConnectorIcon = (
-    connector: (typeof connectors)[number]
-  ) => {
-    const connectorAny =
-      connector as unknown as {
-        id?: string;
-        name?: string;
-        rdns?: string;
-        uid?: string;
-      };
-
-    /*
-     * Some Wagmi versions expose the EIP-6963
-     * provider UID through the connector.
-     */
-    if (
-      connectorAny.uid &&
-      walletIcons[connectorAny.uid]
-    ) {
-      return walletIcons[
-        connectorAny.uid
-      ];
-    }
-
-    /*
-     * Try RDNS / connector ID matching.
-     */
-    const connectorId =
-      connectorAny.id?.toLowerCase() ?? "";
-
-    const connectorName =
-      connector.name.toLowerCase();
-
-    const iconEntries =
-      Object.entries(walletIcons);
-
-    for (const [key, icon] of iconEntries) {
-      const lowerKey = key.toLowerCase();
-
-      if (
-        lowerKey.includes(connectorId) ||
-        lowerKey.includes(connectorName)
-      ) {
-        return icon;
-      }
-    }
-
-    return undefined;
-  };
-
   return (
     <>
-      {/* ================================================= */}
-      {/* TOP BAR                                           */}
-      {/* ================================================= */}
-
+      {/* TOP BAR */}
       <header className="sticky top-0 z-50 h-[68px] border-b border-[#E7E7EA] bg-white">
         <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-10">
 
@@ -257,21 +202,23 @@ export function TopBar() {
             </div>
           </div>
 
-          {/* RIGHT SIDE */}
+          {/* RIGHT */}
           <div className="flex items-center gap-2">
 
             {/* NETWORK */}
             <div className="hidden items-center gap-2 rounded-full border border-[#E7E7EA] px-3 py-2 sm:flex">
               <span
                 className={`h-[7px] w-[7px] rounded-full ${
-                  connected && !onArcTestnet
+                  connected &&
+                  !onArcTestnet
                     ? "bg-[#D99A36]"
                     : "bg-[#31A66A]"
                 }`}
               />
 
               <span className="text-[10px] font-medium text-[#66676E]">
-                {connected && !onArcTestnet
+                {connected &&
+                !onArcTestnet
                   ? "Wrong network"
                   : "Arc Testnet"}
               </span>
@@ -309,7 +256,7 @@ export function TopBar() {
               </button>
             ) : connected ? (
 
-              /* CONNECTED WALLET */
+              /* CONNECTED */
               <div className="relative">
                 <button
                   type="button"
@@ -341,7 +288,6 @@ export function TopBar() {
                   />
                 </button>
 
-                {/* ACCOUNT MENU */}
                 {accountMenuOpen && (
                   <div className="absolute right-0 top-[50px] w-[270px] overflow-hidden rounded-[18px] border border-[#E5E5E8] bg-white shadow-[0_18px_50px_-25px_rgba(0,0,0,.25)]">
 
@@ -357,13 +303,12 @@ export function TopBar() {
 
                     <div className="p-2">
 
-                      {/* COPY */}
                       <button
                         type="button"
                         onClick={
                           copyAddress
                         }
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] text-[#55565D] transition hover:bg-[#F7F7F8]"
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] text-[#55565D] hover:bg-[#F7F7F8]"
                       >
                         {copied ? (
                           <Check
@@ -380,7 +325,6 @@ export function TopBar() {
                           : "Copy address"}
                       </button>
 
-                      {/* EXPLORER */}
                       {address && (
                         <a
                           href={explorerAddressUrl(
@@ -388,7 +332,7 @@ export function TopBar() {
                           )}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-[#55565D] transition hover:bg-[#F7F7F8]"
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-[#55565D] hover:bg-[#F7F7F8]"
                         >
                           <ExternalLink
                             size={15}
@@ -398,13 +342,12 @@ export function TopBar() {
                         </a>
                       )}
 
-                      {/* DISCONNECT */}
                       <button
                         type="button"
                         onClick={
                           handleDisconnect
                         }
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-red-500 transition hover:bg-red-50"
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-red-500 hover:bg-red-50"
                       >
                         <LogOut
                           size={15}
@@ -419,7 +362,7 @@ export function TopBar() {
 
             ) : (
 
-              /* CONNECT BUTTON */
+              /* CONNECT */
               <button
                 type="button"
                 onClick={() =>
@@ -441,14 +384,10 @@ export function TopBar() {
         </div>
       </header>
 
-      {/* ================================================= */}
-      {/* WALLET MODAL                                      */}
-      {/* ================================================= */}
-
+      {/* WALLET MODAL */}
       {walletModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 px-4 backdrop-blur-[3px]">
 
-          {/* BACKDROP */}
           <button
             type="button"
             aria-label="Close wallet modal"
@@ -457,27 +396,22 @@ export function TopBar() {
                 false
               )
             }
-            className="absolute inset-0 cursor-default"
+            className="absolute inset-0"
           />
 
-          {/* MODAL */}
           <div className="relative z-10 w-full max-w-[430px] overflow-hidden rounded-[24px] border border-[#E4E4E7] bg-white shadow-[0_30px_80px_-30px_rgba(0,0,0,.28)]">
 
             {/* CLOSE */}
             <button
               type="button"
-              aria-label="Close"
               onClick={() =>
                 setWalletModalOpen(
                   false
                 )
               }
-              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[#E7E7EA] bg-white text-[#777880] transition hover:bg-[#F5F5F6] hover:text-[#111111]"
+              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[#E7E7EA] bg-white text-[#777880] hover:bg-[#F5F5F6]"
             >
-              <X
-                size={17}
-                strokeWidth={1.7}
-              />
+              <X size={17} />
             </button>
 
             {/* HEADER */}
@@ -491,7 +425,7 @@ export function TopBar() {
                 </div>
               </div>
 
-              <h2 className="mt-5 text-[22px] font-semibold tracking-[-0.04em] text-[#111111]">
+              <h2 className="mt-5 text-[22px] font-semibold tracking-[-0.04em]">
                 Connect your wallet
               </h2>
 
@@ -501,108 +435,77 @@ export function TopBar() {
               </p>
             </div>
 
-            {/* WALLET LIST */}
+            {/* WALLETS */}
             <div className="px-5 pb-5">
 
-              <div className="overflow-hidden rounded-[18px] border border-[#E3E3E6] bg-white">
+              <div className="overflow-hidden rounded-[18px] border border-[#E3E3E6]">
 
-                {connectors.map(
-                  (
-                    connector,
-                    index
-                  ) => {
-                    const icon =
-                      getConnectorIcon(
-                        connector
-                      );
+                {wallets.map(
+                  (wallet) => (
+                    <button
+                      key={
+                        wallet.uuid
+                      }
+                      type="button"
+                      disabled={
+                        isPending
+                      }
+                      onClick={
+                        handleConnect
+                      }
+                      className="group flex w-full items-center gap-4 border-b border-[#EEEEF1] px-4 py-3.5 text-left transition last:border-b-0 hover:bg-[#F8F8F9] disabled:opacity-50"
+                    >
 
-                    return (
-                      <button
-                        key={
-                          connector.uid
-                        }
-                        type="button"
-                        disabled={
-                          isPending
-                        }
-                        onClick={() =>
-                          handleConnect(
-                            connector
-                          )
-                        }
-                        className={`group flex w-full items-center gap-4 px-4 py-3.5 text-left transition hover:bg-[#F8F8F9] disabled:cursor-not-allowed disabled:opacity-50 ${
-                          index <
-                          connectors.length -
-                            1
-                            ? "border-b border-[#EEEEF1]"
-                            : ""
-                        }`}
-                      >
-
-                        {/* WALLET ICON */}
-                        <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[12px] bg-[#F5F5F6]">
-
-                          {icon ? (
-                            <img
-                              src={icon}
-                              alt=""
-                              className="h-[29px] w-[29px] rounded-[8px] object-contain"
-                            />
-                          ) : (
-                            <Wallet
-                              size={19}
-                              strokeWidth={1.7}
-                              className="text-[#55565D]"
-                            />
-                          )}
-
-                        </div>
-
-                        {/* WALLET NAME */}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-semibold text-[#222327]">
-                            {
-                              connector.name
-                            }
-                          </p>
-
-                          <p className="mt-1 text-[9px] text-[#999AA2]">
-                            {isPending
-                              ? "Confirm in your wallet..."
-                              : "Connect wallet"}
-                          </p>
-                        </div>
-
-                        <ChevronDown
-                          size={15}
-                          className="-rotate-90 text-[#A0A1A8] transition-transform group-hover:translate-x-0.5"
-                        />
-                      </button>
-                    );
-                  }
-                )}
-
-                {/* NO CONNECTORS */}
-                {connectors.length ===
-                  0 && (
-                    <div className="px-5 py-8 text-center">
-
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F5F6]">
-                        <Wallet
-                          size={20}
-                          className="text-[#777880]"
+                      {/* REAL OFFICIAL ICON */}
+                      <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[12px] bg-[#F5F5F6]">
+                        <img
+                          src={
+                            wallet.icon
+                          }
+                          alt=""
+                          className="h-[29px] w-[29px] rounded-[8px] object-contain"
                         />
                       </div>
 
-                      <p className="mt-3 text-[11px] font-semibold text-[#55565D]">
-                        No compatible
-                        wallet found
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12px] font-semibold text-[#222327]">
+                          {
+                            wallet.name
+                          }
+                        </p>
+
+                        <p className="mt-1 text-[9px] text-[#999AA2]">
+                          {isPending
+                            ? "Confirm in your wallet..."
+                            : "Connect wallet"}
+                        </p>
+                      </div>
+
+                      <ChevronDown
+                        size={15}
+                        className="-rotate-90 text-[#A0A1A8]"
+                      />
+                    </button>
+                  )
+                )}
+
+                {wallets.length ===
+                  0 && (
+                    <div className="px-5 py-8 text-center">
+                      <Wallet
+                        size={22}
+                        className="mx-auto text-[#777880]"
+                      />
+
+                      <p className="mt-3 text-[11px] font-semibold">
+                        No browser wallets
+                        detected
                       </p>
 
                       <p className="mt-1 text-[9px] leading-4 text-[#999AA2]">
-                        Install a compatible
-                        wallet and refresh
-                        the page.
+                        Make sure your wallet
+                        extension is installed
+                        and enabled.
                       </p>
                     </div>
                   )}
@@ -621,7 +524,8 @@ export function TopBar() {
                   </p>
 
                   <p className="mt-0.5 text-[9px] text-[#999AA2]">
-                    Payments use USDC on Arc.
+                    USDC payments use Arc
+                    Testnet.
                   </p>
                 </div>
 
@@ -639,11 +543,7 @@ export function TopBar() {
                   </p>
 
                   <p className="mt-1 text-[9px] leading-4 text-[#B76A6A]">
-                    {error.message.includes(
-                      "User rejected"
-                    )
-                      ? "Connection was rejected in your wallet."
-                      : error.message}
+                    {error.message}
                   </p>
 
                 </div>
@@ -652,7 +552,6 @@ export function TopBar() {
 
             {/* FOOTER */}
             <div className="border-t border-[#EEEEF1] px-5 py-4 text-center">
-
               <div className="flex items-center justify-center gap-2">
                 <ShieldCheck
                   size={13}
@@ -664,8 +563,8 @@ export function TopBar() {
                   stay with you.
                 </p>
               </div>
-
             </div>
+
           </div>
         </div>
       )}

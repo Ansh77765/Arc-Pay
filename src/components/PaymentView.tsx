@@ -48,18 +48,9 @@ import {
   type VerifiedPayment,
 } from "@/lib/verify";
 
-import {
-  verifyInvoiceSignature,
-} from "@/lib/paymentRequest";
+import { verifyInvoiceSignature } from "@/lib/paymentRequest";
 
 import { WalletWidget } from "./WalletWidget";
-
-import {
-  StatusPill,
-  type PaymentStatus,
-} from "./StatusPill";
-
-import { CopyButton } from "./CopyButton";
 
 import type { Invoice } from "@/types/invoice";
 
@@ -92,12 +83,16 @@ export function PaymentView({
     isPending: writing,
   } = useWriteContract();
 
-  const {
-    signTypedDataAsync,
-  } = useSignTypedData();
+  const { signTypedDataAsync } =
+    useSignTypedData();
 
   const [status, setStatus] =
-    useState<PaymentStatus>("checking");
+    useState<
+      "checking" |
+      "pending" |
+      "paid" |
+      "error"
+    >("checking");
 
   const [payment, setPayment] =
     useState<VerifiedPayment | null>(null);
@@ -119,6 +114,19 @@ export function PaymentView({
 
   const [shareUrl, setShareUrl] =
     useState("");
+
+  /* =============================================================
+     NETWORK
+     ============================================================= */
+
+  const onArcTestnet =
+    isConnected &&
+    chainId === arcTestnet.id;
+
+  const isRecipient =
+    Boolean(address) &&
+    address?.toLowerCase() ===
+      invoice.recipient.toLowerCase();
 
   /* =============================================================
      TIMER
@@ -152,16 +160,14 @@ export function PaymentView({
 
     updateTimer();
 
-    const interval =
+    const timer =
       window.setInterval(
         updateTimer,
         1000
       );
 
     return () => {
-      window.clearInterval(
-        interval
-      );
+      window.clearInterval(timer);
     };
   }, [expiresAt]);
 
@@ -169,25 +175,11 @@ export function PaymentView({
     timeLeft <= 0;
 
   /* =============================================================
-     WALLET / NETWORK
-     ============================================================= */
-
-  const onArcTestnet =
-    isConnected &&
-    chainId === arcTestnet.id;
-
-  const isRecipient =
-    Boolean(address) &&
-    address?.toLowerCase() ===
-      invoice.recipient.toLowerCase();
-
-  /* =============================================================
      BALANCE
      ============================================================= */
 
   const {
     data: balance,
-    isLoading: balanceLoading,
   } = useReadContract({
     address: USDC_ADDRESS,
     abi: erc20Abi,
@@ -270,7 +262,7 @@ export function PaymentView({
   }, []);
 
   /* =============================================================
-     AMOUNT / APPROVAL
+     AMOUNT
      ============================================================= */
 
   const requiredAmount =
@@ -305,7 +297,7 @@ export function PaymentView({
   }, []);
 
   /* =============================================================
-     VERIFY INVOICE
+     INVOICE VERIFICATION
      ============================================================= */
 
   useEffect(() => {
@@ -498,7 +490,7 @@ export function PaymentView({
 
     if (!onArcTestnet) {
       setError(
-        "Switch your wallet to Arc Testnet."
+        "Switch to Arc Testnet first."
       );
       return;
     }
@@ -542,10 +534,8 @@ export function PaymentView({
         }
       }
 
-      /*
-       * Keep the Permit2 deadline inside
-       * the payment-request lifetime.
-       */
+      /* Never allow the Permit2 signature
+         to outlive the payment request. */
       const remainingSeconds =
         Math.max(
           1,
@@ -554,18 +544,18 @@ export function PaymentView({
           )
         );
 
-      const deadline = BigInt(
-        Math.floor(
-          Date.now() / 1000
-        ) +
-          Math.min(
-            remainingSeconds,
-            30 * 60
-          )
-      );
+      const deadline =
+        BigInt(
+          Math.floor(
+            Date.now() / 1000
+          ) +
+            remainingSeconds
+        );
 
       const nonce =
-        BigInt(invoice.nonce);
+        BigInt(
+          invoice.nonce
+        );
 
       const signature =
         await signTypedDataAsync({
@@ -642,13 +632,9 @@ export function PaymentView({
         );
 
       if (verified) {
-        setPayment(
-          verified
-        );
+        setPayment(verified);
         setStatus("paid");
-        setPendingTxHash(
-          null
-        );
+        setPendingTxHash(null);
       } else {
         setError(
           "The transaction confirmed, but it did not contain this invoice's unique payment nonce."
@@ -711,7 +697,7 @@ export function PaymentView({
   }
 
   /* =============================================================
-     RENDER
+     PAGE
      ============================================================= */
 
   return (
@@ -719,7 +705,7 @@ export function PaymentView({
 
       {/* TOP BAR */}
 
-      <div className="border-b border-[#E7E7EA] bg-white">
+      <header className="border-b border-[#E7E7EA] bg-white">
         <div className="mx-auto flex h-[68px] max-w-[1180px] items-center justify-between px-5 sm:px-8">
 
           <Link
@@ -745,22 +731,21 @@ export function PaymentView({
 
           <WalletWidget />
         </div>
-      </div>
+      </header>
 
-      {/* PAGE */}
+      {/* MAIN */}
 
       <main className="mx-auto max-w-[720px] px-5 pb-20 pt-8 sm:px-8 sm:pt-12">
 
-        {/* HEADER */}
+        {/* TOP */}
 
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-center justify-between gap-3">
 
           <Link
             href="/"
-            className="flex items-center gap-2 rounded-full border border-[#E7E7EA] px-3.5 py-2 text-[10px] font-medium text-[#66676E] transition hover:bg-[#F7F7F8]"
+            className="rounded-full border border-[#E7E7EA] px-3.5 py-2 text-[10px] font-medium text-[#66676E] transition hover:bg-[#F7F7F8]"
           >
-            <span>←</span>
-            New payment
+            ← New payment
           </Link>
 
           <span
@@ -790,44 +775,41 @@ export function PaymentView({
           </span>
         </div>
 
-        {/* MAIN CARD */}
+        {/* CARD */}
 
         <section className="overflow-hidden rounded-[24px] border border-[#E7E7EA] bg-white shadow-[0_20px_60px_-35px_rgba(0,0,0,.18)]">
 
-          {/* =====================================================
-              SUMMARY
-             ===================================================== */}
+          {/* SUMMARY */}
 
-          <div className="border-b border-[#EEEEF1] px-6 py-7 sm:px-8 sm:py-8">
+          <div className="border-b border-[#EEEEF1] px-6 py-7 sm:px-8">
 
             <div className="flex items-start justify-between gap-5">
 
-              <div>
+              <div className="min-w-0">
 
                 <div className="flex items-center gap-2">
 
-                  <span className="h-2 w-2 rounded-full bg-[#5B9BFF]" />
+                  <span className="h-2 w-2 rounded-full bg-[#5B72D8]" />
 
                   <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#85868E]">
                     Payment request
                   </span>
                 </div>
 
-                <h1 className="mt-4 text-[44px] font-semibold tracking-[-0.055em] text-[#111111] sm:text-[52px]">
+                <h1 className="mt-4 text-[42px] font-semibold tracking-[-0.055em] sm:text-[50px]">
                   {formatUsdc(
                     invoice.amount
                   )}
-                  <span className="ml-2 text-[16px] font-semibold tracking-normal text-[#777880]">
+
+                  <span className="ml-2 text-[15px] font-semibold tracking-normal text-[#777880]">
                     USDC
                   </span>
                 </h1>
 
-                <p className="mt-3 max-w-[470px] text-[12px] leading-5 text-[#85868E]">
+                <p className="mt-3 max-w-[450px] text-[12px] leading-5 text-[#85868E]">
                   {invoice.description}
                 </p>
               </div>
-
-              {/* TIMER */}
 
               <PaymentCountdown
                 timeLeft={
@@ -840,33 +822,23 @@ export function PaymentView({
             </div>
           </div>
 
-          {/* =====================================================
-              DETAILS
-             ===================================================== */}
+          {/* DETAILS */}
 
           <div className="px-6 py-6 sm:px-8">
 
             <div className="rounded-[18px] border border-[#E7E7EA] bg-[#FAFAFA] p-5">
 
-              <div className="space-y-5">
-
-                {/* Recipient */}
-
-                <div className="flex items-center justify-between gap-4">
-
-                  <span className="text-[10px] font-medium text-[#96979F]">
-                    Recipient
-                  </span>
-
-                  <div className="flex min-w-0 items-center gap-2">
-
+              <DetailRow
+                label="Recipient"
+                value={
+                  <div className="flex items-center gap-2">
                     <a
                       href={explorerAddressUrl(
                         invoice.recipient
                       )}
                       target="_blank"
                       rel="noreferrer"
-                      className="truncate font-mono text-[10px] font-medium text-[#55565D] transition hover:text-[#111111]"
+                      className="font-mono text-[10px] font-medium text-[#55565D] hover:text-[#111111]"
                     >
                       {shortAddress(
                         invoice.recipient
@@ -878,76 +850,56 @@ export function PaymentView({
                         invoice.recipient
                       }
                       label=""
-                      className="text-[#A0A1A8] transition hover:text-[#33343A]"
                     />
                   </div>
-                </div>
+                }
+              />
 
-                {/* Network */}
+              <div className="my-4 border-t border-[#EEEEF1]" />
 
-                <div className="flex items-center justify-between">
-
-                  <span className="text-[10px] font-medium text-[#96979F]">
-                    Network
-                  </span>
-
-                  <span className="flex items-center gap-2 text-[10px] font-semibold text-[#55565D]">
-
+              <DetailRow
+                label="Network"
+                value={
+                  <span className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#31A66A]" />
-
                     Arc Testnet
                   </span>
-                </div>
+                }
+              />
 
-                {/* Requested */}
+              <div className="my-4 border-t border-[#EEEEF1]" />
 
-                <div className="flex items-center justify-between">
-
-                  <span className="text-[10px] font-medium text-[#96979F]">
-                    Requested
-                  </span>
-
-                  <span className="text-[10px] font-medium text-[#777880]">
-                    {formatDate(
-                      invoice.createdAt
-                    )}
-                  </span>
-                </div>
-              </div>
+              <DetailRow
+                label="Requested"
+                value={formatDate(
+                  invoice.createdAt
+                )}
+              />
             </div>
 
-            {/* INVALID */}
-
             {invoiceValid === false && (
-              <div className="mt-4 rounded-[16px] border border-[#F0D5D5] bg-[#FFF8F8] px-4 py-4">
+              <div className="mt-4 rounded-[16px] border border-[#F0D5D5] bg-[#FFF8F8] px-4 py-4 text-center">
 
-                <div className="flex items-start gap-3">
-
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FBEAEA] text-[11px] font-bold text-[#D65A5A]">
-                    !
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] font-semibold text-[#B84D4D]">
-                      Invalid payment request
-                    </p>
-
-                    <p className="mt-1 text-[9px] leading-5 text-[#C47777]">
-                      Do not send funds to this request.
-                    </p>
-                  </div>
+                <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-[#FBEAEA] text-[11px] font-bold text-[#D65A5A]">
+                  !
                 </div>
+
+                <p className="mt-3 text-[11px] font-semibold text-[#B84D4D]">
+                  Invalid payment request
+                </p>
+
+                <p className="mt-1 text-[9px] text-[#C47777]">
+                  Do not send funds to this request.
+                </p>
               </div>
             )}
           </div>
 
           <div className="border-t border-[#EEEEF1]" />
 
-          {/* =====================================================
-              ACTION AREA
-             ===================================================== */}
+          {/* ACTION AREA */}
 
-          <div className="px-6 py-6 sm:px-8">
+          <div className="p-6 sm:p-8">
 
             {/* PAID */}
 
@@ -956,12 +908,12 @@ export function PaymentView({
               <div className="rounded-[18px] border border-[#DCEDE3] bg-[#F6FBF8] p-7 text-center">
 
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
-                  <span className="text-[24px] font-semibold">
+                  <span className="text-2xl font-bold">
                     ✓
                   </span>
                 </div>
 
-                <p className="mt-5 text-[15px] font-semibold text-[#222327]">
+                <p className="mt-5 text-[15px] font-semibold text-[#33343A]">
                   Payment confirmed
                 </p>
 
@@ -976,7 +928,7 @@ export function PaymentView({
                   )}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-5 inline-flex items-center gap-2 rounded-[11px] border border-[#DCEDE3] bg-white px-3.5 py-2.5 font-mono text-[10px] font-medium text-[#31A66A] transition hover:bg-[#F5FBF7]"
+                  className="mt-5 inline-flex items-center gap-2 rounded-[11px] border border-[#DCEDE3] bg-white px-3.5 py-2.5 font-mono text-[10px] font-medium text-[#31A66A] hover:bg-[#F5FBF7]"
                 >
                   {shortHash(
                     payment.txHash
@@ -1003,22 +955,13 @@ export function PaymentView({
 
                 <div className="rounded-[18px] border border-[#E7E7EA] bg-[#F7F7F8] p-5">
 
-                  <div className="flex items-center gap-3">
+                  <p className="text-[12px] font-semibold text-[#33343A]">
+                    This is your request
+                  </p>
 
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-[#55565D]">
-                      ↗
-                    </div>
-
-                    <div>
-                      <p className="text-[12px] font-semibold text-[#33343A]">
-                        This is your request
-                      </p>
-
-                      <p className="mt-1 text-[10px] leading-5 text-[#85868E]">
-                        Share the link below to get paid.
-                      </p>
-                    </div>
-                  </div>
+                  <p className="mt-1 text-[10px] leading-5 text-[#85868E]">
+                    Share the link below to get paid.
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2 rounded-[14px] border border-[#E7E7EA] bg-[#F7F7F8] p-2">
@@ -1031,7 +974,7 @@ export function PaymentView({
                     value={shareUrl}
                     label="Copy link"
                     copiedLabel="Copied"
-                    className="shrink-0 rounded-[10px] bg-[#111111] px-3 py-2 text-[9px] font-semibold text-white transition hover:bg-[#292929]"
+                    className="shrink-0 rounded-[10px] bg-[#111111] px-3 py-2 text-[9px] font-semibold text-white"
                   />
                 </div>
               </div>
@@ -1042,7 +985,7 @@ export function PaymentView({
 
               <div className="rounded-[18px] border border-[#E7E7EA] bg-[#FAFAFA] p-6 text-center">
 
-                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#777880]">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#777880] shadow-sm">
                   <span className="text-lg">
                     ₿
                   </span>
@@ -1053,8 +996,7 @@ export function PaymentView({
                 </p>
 
                 <p className="mt-1 text-[10px] leading-5 text-[#85868E]">
-                  Connect your wallet to pay this
-                  request.
+                  Connect your wallet to pay this request.
                 </p>
 
                 <div className="mt-5 flex justify-center">
@@ -1068,25 +1010,20 @@ export function PaymentView({
 
               <div className="space-y-3">
 
-                <div className="rounded-[18px] border border-[#F0E2C8] bg-[#FFFBF4] p-5">
+                <div className="rounded-[18px] border border-[#F0E2C8] bg-[#FFFBF4] p-5 text-center">
 
-                  <div className="flex items-start gap-3">
-
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-[#FFF1D6] text-[#C58A28]">
-                      !
-                    </div>
-
-                    <div>
-                      <p className="text-[11px] font-semibold text-[#755522]">
-                        Wrong network
-                      </p>
-
-                      <p className="mt-1 text-[10px] leading-5 text-[#A47A3A]">
-                        Switch your wallet to Arc Testnet
-                        to continue.
-                      </p>
-                    </div>
+                  <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-[11px] bg-[#FFF1D6] text-[#C58A28]">
+                    !
                   </div>
+
+                  <p className="mt-3 text-[11px] font-semibold text-[#755522]">
+                    Wrong network
+                  </p>
+
+                  <p className="mt-1 text-[10px] leading-5 text-[#A47A3A]">
+                    Switch your wallet to Arc Testnet
+                    to continue.
+                  </p>
                 </div>
 
                 <button
@@ -1097,10 +1034,8 @@ export function PaymentView({
                         arcTestnet.id,
                     })
                   }
-                  disabled={
-                    switching
-                  }
-                  className="flex h-12 w-full items-center justify-center rounded-[13px] bg-[#111111] text-[11px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
+                  disabled={switching}
+                  className="h-12 w-full rounded-[13px] bg-[#111111] text-[11px] font-semibold text-white transition hover:bg-[#292929] disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
                 >
                   {switching
                     ? "Switching…"
@@ -1126,6 +1061,26 @@ export function PaymentView({
                 </p>
               </div>
 
+            ) : requestExpired ? (
+
+              /* EXPIRED */
+
+              <div className="rounded-[18px] border border-[#F0D5D5] bg-[#FFF8F8] p-7 text-center">
+
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FBEAEA] text-[#D65A5A]">
+                  !
+                </div>
+
+                <p className="mt-4 text-[14px] font-semibold text-[#B84D4D]">
+                  Payment request expired
+                </p>
+
+                <p className="mx-auto mt-1 max-w-[320px] text-[10px] leading-5 text-[#C47777]">
+                  This request was valid for 10 minutes.
+                  Ask the sender to create a new payment link.
+                </p>
+              </div>
+
             ) : (
 
               /* PAYMENT */
@@ -1139,7 +1094,7 @@ export function PaymentView({
                       )}
                       target="_blank"
                       rel="noreferrer"
-                      className="mb-4 flex items-center justify-between rounded-[14px] border border-[#E1E7F2] bg-[#F7F9FC] px-4 py-3.5 font-mono text-[10px] text-[#667085] transition hover:bg-[#F2F5FA]"
+                      className="mb-4 flex items-center justify-between rounded-[14px] border border-[#E1E7F2] bg-[#F7F9FC] px-4 py-3.5 font-mono text-[10px] text-[#667085]"
                     >
                       <span>
                         Confirming{" "}
@@ -1149,125 +1104,88 @@ export function PaymentView({
                         …
                       </span>
 
-                      <span>
-                        ↗
-                      </span>
+                      <span>↗</span>
                     </a>
                   )}
 
-                {/* EXPIRED */}
+                <button
+                  type="button"
+                  onClick={handlePay}
+                  disabled={
+                    writing ||
+                    confirming ||
+                    approvalPending ||
+                    insufficientBalance ||
+                    requestExpired
+                  }
+                  className="group flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#111111] text-[12px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
+                >
+                  {approvalPending
+                    ? "Approve USDC for Permit2…"
+                    : writing
+                    ? "Confirm in wallet…"
+                    : confirming
+                    ? "Verifying payment…"
+                    : insufficientBalance
+                    ? "Insufficient USDC balance"
+                    : needsApproval
+                    ? `Enable ${formatUsdc(
+                        invoice.amount
+                      )} USDC payment`
+                    : `Pay ${formatUsdc(
+                        invoice.amount
+                      )} USDC`}
 
-                {requestExpired ? (
-                  <div className="rounded-[18px] border border-[#F0D5D5] bg-[#FFF8F8] p-6 text-center">
-
-                    <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#FBEAEA] text-[#D65A5A]">
-                      !
-                    </div>
-
-                    <p className="mt-4 text-[13px] font-semibold text-[#B84D4D]">
-                      Payment request expired
-                    </p>
-
-                    <p className="mt-1 text-[10px] leading-5 text-[#C47777]">
-                      This request was valid for 10 minutes.
-                      Ask the sender for a new payment link.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {/* PAY BUTTON */}
-
-                    <button
-                      type="button"
-                      onClick={
-                        handlePay
-                      }
-                      disabled={
-                        writing ||
-                        confirming ||
-                        approvalPending ||
-                        insufficientBalance ||
-                        requestExpired
-                      }
-                      className="group flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#111111] text-[12px] font-semibold text-white transition hover:bg-[#292929] active:scale-[0.995] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
-                    >
-                      <span className="flex items-center gap-2">
-
-                        {approvalPending
-                          ? "Approve USDC for Permit2…"
-                          : writing
-                          ? "Confirm in wallet…"
-                          : confirming
-                          ? "Verifying payment…"
-                          : insufficientBalance
-                          ? "Insufficient USDC balance"
-                          : needsApproval
-                          ? `Enable ${formatUsdc(
-                              invoice.amount
-                            )} USDC payment`
-                          : `Pay ${formatUsdc(
-                              invoice.amount
-                            )} USDC`}
-
-                        {!writing &&
-                          !confirming &&
-                          !approvalPending &&
-                          !insufficientBalance && (
-                            <span className="text-white/45 transition-transform group-hover:translate-x-0.5">
-                              →
-                            </span>
-                          )}
+                  {!writing &&
+                    !confirming &&
+                    !approvalPending &&
+                    !insufficientBalance && (
+                      <span className="text-white/45 transition-transform group-hover:translate-x-0.5">
+                        →
                       </span>
-                    </button>
+                    )}
+                </button>
 
-                    {/* SECURITY */}
+                <div className="mt-4 flex items-start justify-center gap-2 px-3">
 
-                    <div className="mt-4 flex items-start justify-center gap-2 px-3">
+                  <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[#D8D9DD] text-[8px] text-[#777880]">
+                    ✓
+                  </div>
 
-                      <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[#D8D9DD] text-[8px] text-[#777880]">
-                        ✓
+                  <p className="max-w-[400px] text-center text-[9px] leading-5 text-[#999AA2]">
+                    Your wallet signs the payment.
+                    Funds are sent directly to the
+                    recipient — Arc Pay never holds them.
+                  </p>
+                </div>
+
+                {insufficientBalance &&
+                  balance !== undefined && (
+                    <div className="mt-4 rounded-[14px] border border-[#F0E2C8] bg-[#FFFBF4] px-4 py-3">
+
+                      <div className="flex items-center justify-between">
+
+                        <span className="text-[10px] font-medium text-[#8B6B38]">
+                          Your USDC balance
+                        </span>
+
+                        <span className="font-mono text-[10px] font-semibold text-[#755522]">
+                          {formatUsdc(
+                            formatUnits(
+                              balance,
+                              USDC_DECIMALS
+                            )
+                          )}{" "}
+                          USDC
+                        </span>
                       </div>
 
-                      <p className="max-w-[400px] text-center text-[9px] leading-5 text-[#999AA2]">
-                        Your wallet signs the payment.
-                        Funds are sent directly to the
-                        recipient — Arc Pay never holds them.
+                      <p className="mt-1 text-[9px] text-[#A47A3A]">
+                        Add more USDC to complete this
+                        payment.
                       </p>
                     </div>
-
-                    {/* BALANCE */}
-
-                    {insufficientBalance &&
-                      balance !== undefined && (
-                        <div className="mt-4 rounded-[14px] border border-[#F0E2C8] bg-[#FFFBF4] px-4 py-3">
-
-                          <div className="flex items-center justify-between">
-
-                            <span className="text-[10px] font-medium text-[#8B6B38]">
-                              Your USDC balance
-                            </span>
-
-                            <span className="font-mono text-[10px] font-semibold text-[#755522]">
-                              {formatUsdc(
-                                formatUnits(
-                                  balance,
-                                  USDC_DECIMALS
-                                )
-                              )}{" "}
-                              USDC
-                            </span>
-                          </div>
-
-                          <p className="mt-1 text-[9px] text-[#A47A3A]">
-                            Add more USDC to complete
-                            this payment.
-                          </p>
-                        </div>
-                      )}
-                  </>
-                )}
-
-                {/* ERROR */}
+                  )}
 
                 {error && (
                   <div className="mt-4 rounded-[14px] border border-[#F0D5D5] bg-[#FFF8F8] px-4 py-3">
@@ -1289,11 +1207,8 @@ export function PaymentView({
         {/* FOOTER */}
 
         <div className="mt-5 flex items-center justify-center gap-2 text-[9px] text-[#A0A1A8]">
-
           <span className="h-1.5 w-1.5 rounded-full bg-[#31A66A]" />
-
           Direct wallet-to-wallet payment on Arc
-
         </div>
 
         <p className="mt-2 text-center text-[9px] text-[#B0B1B7]">
@@ -1305,7 +1220,31 @@ export function PaymentView({
 }
 
 /* ===============================================================
-   PAYMENT COUNTDOWN
+   DETAIL ROW
+   =============================================================== */
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-[10px] font-medium text-[#96979F]">
+        {label}
+      </span>
+
+      <span className="text-[10px] font-semibold text-[#55565D]">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/* ===============================================================
+   COUNTDOWN
    =============================================================== */
 
 function PaymentCountdown({
@@ -1412,7 +1351,7 @@ function PaymentCountdown({
         >
           {expired
             ? "!"
-            : "10m"}
+            : `${minutes}m`}
         </span>
       </div>
 

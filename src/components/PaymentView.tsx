@@ -25,7 +25,6 @@ import {
   explorerTxUrl,
   explorerAddressUrl,
 } from "@/lib/config";
-
 import {
   formatUsdc,
   formatDate,
@@ -48,9 +47,11 @@ import {
 import { verifyInvoiceSignature } from "@/lib/paymentRequest";
 
 import { WalletWidget } from "./WalletWidget";
-import { StatusPill, type PaymentStatus } from "./StatusPill";
+import {
+  StatusPill,
+  type PaymentStatus,
+} from "./StatusPill";
 import { CopyButton } from "./CopyButton";
-
 import type { Invoice } from "@/types/invoice";
 import Link from "next/link";
 
@@ -59,14 +60,17 @@ export function PaymentView({
 }: {
   invoice: Invoice;
 }) {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected, chainId } =
+    useAccount();
 
   const publicClient = usePublicClient({
     chainId: arcTestnet.id,
   });
 
-  const { switchChain, isPending: switching } =
-    useSwitchChain();
+  const {
+    switchChain,
+    isPending: switching,
+  } = useSwitchChain();
 
   const {
     writeContractAsync,
@@ -100,12 +104,6 @@ export function PaymentView({
   const [shareUrl, setShareUrl] =
     useState("");
 
-  /*
-   * ---------------------------------------------------------
-   * Wallet / network state
-   * ---------------------------------------------------------
-   */
-
   const onArcTestnet =
     isConnected &&
     chainId === arcTestnet.id;
@@ -114,23 +112,11 @@ export function PaymentView({
     address?.toLowerCase() ===
     invoice.recipient.toLowerCase();
 
-  /*
-   * ---------------------------------------------------------
-   * Share URL
-   * ---------------------------------------------------------
-   */
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       setShareUrl(window.location.href);
     }
   }, []);
-
-  /*
-   * ---------------------------------------------------------
-   * Verify the signed invoice
-   * ---------------------------------------------------------
-   */
 
   useEffect(() => {
     let active = true;
@@ -154,22 +140,10 @@ export function PaymentView({
     };
   }, [invoice]);
 
-  /*
-   * ---------------------------------------------------------
-   * Amount
-   * ---------------------------------------------------------
-   */
-
   const requiredAmount = parseUnits(
     invoice.amount,
     USDC_DECIMALS
   );
-
-  /*
-   * ---------------------------------------------------------
-   * USDC balance
-   * ---------------------------------------------------------
-   */
 
   const { data: balance } =
     useReadContract({
@@ -187,24 +161,6 @@ export function PaymentView({
         refetchInterval: 15_000,
       },
     });
-
-  /*
-   * ---------------------------------------------------------
-   * Permit2 allowance
-   * ---------------------------------------------------------
-   *
-   * User must approve:
-   *
-   * User wallet
-   *      ↓
-   *    USDC
-   *      ↓
-   *   Permit2
-   *
-   * This is required before SignatureTransfer can
-   * move the USDC.
-   * ---------------------------------------------------------
-   */
 
   const {
     data: allowance,
@@ -234,12 +190,6 @@ export function PaymentView({
     onArcTestnet &&
     allowance !== undefined &&
     allowance < requiredAmount;
-
-  /*
-   * ---------------------------------------------------------
-   * Find existing payment
-   * ---------------------------------------------------------
-   */
 
   const scanForPayment =
     useCallback(async () => {
@@ -284,12 +234,6 @@ export function PaymentView({
       clearInterval(interval);
     };
   }, [scanForPayment]);
-
-  /*
-   * ---------------------------------------------------------
-   * Approve USDC for Permit2
-   * ---------------------------------------------------------
-   */
 
   async function handleApproval(): Promise<boolean> {
     setError(null);
@@ -362,12 +306,6 @@ export function PaymentView({
     }
   }
 
-  /*
-   * ---------------------------------------------------------
-   * Pay
-   * ---------------------------------------------------------
-   */
-
   async function handlePay() {
     setError(null);
 
@@ -407,13 +345,6 @@ export function PaymentView({
     }
 
     try {
-      /*
-       * -----------------------------------------------------
-       * STEP 1
-       * Approve Permit2 if required.
-       * -----------------------------------------------------
-       */
-
       if (needsApproval) {
         const approved =
           await handleApproval();
@@ -436,25 +367,6 @@ export function PaymentView({
         }
       }
 
-      /*
-       * -----------------------------------------------------
-       * STEP 2
-       * Create a short-lived Permit2 signature.
-       * -----------------------------------------------------
-       *
-       * IMPORTANT:
-       *
-       * `spender` is the wallet address that directly
-       * calls Permit2 in this implementation.
-       *
-       * The actual Permit2 contract remains:
-       *
-       * PERMIT2_ADDRESS
-       *
-       * The wallet is the caller / spender context.
-       * -----------------------------------------------------
-       */
-
       const deadline = BigInt(
         Math.floor(
           Date.now() / 1000
@@ -472,88 +384,45 @@ export function PaymentView({
             arcTestnet.id,
             PERMIT2_ADDRESS
           ),
-
           types: permit2Types,
-
           primaryType:
             "PermitTransferFrom",
-
           message: {
             permitted: {
               token: USDC_ADDRESS,
               amount: requiredAmount,
             },
-
-            /*
-             * IMPORTANT FIX
-             *
-             * This must be the wallet making the
-             * Permit2 call, not the Permit2 contract.
-             */
             spender: address,
-
             nonce,
-
             deadline,
           },
         });
 
-      /*
-       * -----------------------------------------------------
-       * STEP 3
-       * Execute Permit2 transfer.
-       * -----------------------------------------------------
-       */
-
       const hash =
         await writeContractAsync({
           address: PERMIT2_ADDRESS,
-
           abi: permit2Abi,
-
           functionName:
             "permitTransferFrom",
-
           args: [
             {
               permitted: {
                 token: USDC_ADDRESS,
                 amount: requiredAmount,
               },
-
               nonce,
-
               deadline,
             },
-
             {
               to: invoice.recipient as `0x${string}`,
-
               requestedAmount:
                 requiredAmount,
             },
-
-            /*
-             * Owner of the USDC.
-             */
             address,
-
-            /*
-             * Signature generated above.
-             */
             signature,
           ],
-
-          chainId:
-            arcTestnet.id,
+          chainId: arcTestnet.id,
         });
-
-      /*
-       * -----------------------------------------------------
-       * STEP 4
-       * Wait for confirmation.
-       * -----------------------------------------------------
-       */
 
       setPendingTxHash(hash);
       setConfirming(true);
@@ -562,13 +431,6 @@ export function PaymentView({
       await publicClient.waitForTransactionReceipt(
         { hash }
       );
-
-      /*
-       * -----------------------------------------------------
-       * STEP 5
-       * Verify the actual on-chain payment.
-       * -----------------------------------------------------
-       */
 
       const verified =
         await verifyPaymentTx(
@@ -635,317 +497,434 @@ export function PaymentView({
     }
   }
 
-  /*
-   * ---------------------------------------------------------
-   * UI
-   * ---------------------------------------------------------
-   */
-
   return (
-    <div className="mx-auto max-w-[440px] px-6 pb-24 pt-10 sm:pt-16">
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-[480px] px-5 pb-24 pt-8 sm:pt-12">
 
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-sm text-ink-dim hover:text-ink"
-        >
-          ← New link
-        </Link>
-
-        <WalletWidget />
-      </div>
-
-      {/* Payment card */}
-      <div className="animate-fade-up overflow-hidden rounded-2xl border border-line bg-canvas-panel shadow-card">
-
-        {/* Request information */}
-        <div className="space-y-5 p-7">
-
-          <div className="flex items-start justify-between">
-            <span className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-              Payment request
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
+          <Link
+            href="/"
+            className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-500 transition hover:bg-white hover:text-blue-600"
+          >
+            <span className="transition group-hover:-translate-x-0.5">
+              ←
             </span>
+            New link
+          </Link>
 
-            <StatusPill status={status} />
-          </div>
+          <WalletWidget />
+        </div>
 
-          {/* Amount */}
-          <div>
-            <p className="font-mono text-4xl font-medium tabular text-ink">
-              {formatUsdc(invoice.amount)}
+        {/* Main payment card */}
+        <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
 
-              <span className="ml-2 text-lg text-ink-faint">
-                USDC
-              </span>
-            </p>
+          {/* Request section */}
+          <div className="space-y-6 p-6 sm:p-7">
 
-            <p className="mt-2 text-[15px] text-ink-dim">
-              {invoice.description}
-            </p>
-          </div>
-
-          {/* Details */}
-          <div className="space-y-2.5 rounded-xl border border-line-soft bg-canvas-raised/60 p-4 text-sm">
-
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-ink-faint">
-                Recipient
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                Payment request
               </span>
 
-              <span className="flex items-center gap-2">
+              <StatusPill status={status} />
+            </div>
+
+            {/* Amount */}
+            <div>
+              <div className="flex items-baseline gap-2">
+                <p className="font-mono text-[42px] font-semibold tracking-[-0.045em] text-slate-900">
+                  {formatUsdc(
+                    invoice.amount
+                  )}
+                </p>
+
+                <span className="text-lg font-semibold text-blue-600">
+                  USDC
+                </span>
+              </div>
+
+              <p className="mt-2 text-[15px] leading-6 text-slate-500">
+                {invoice.description}
+              </p>
+            </div>
+
+            {/* Details */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+
+              <div className="space-y-4">
+
+                {/* Recipient */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs font-medium text-slate-400">
+                    Recipient
+                  </span>
+
+                  <span className="flex min-w-0 items-center gap-2">
+                    <a
+                      href={explorerAddressUrl(
+                        invoice.recipient
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate font-mono text-xs font-medium text-slate-700 transition hover:text-blue-600"
+                    >
+                      {shortAddress(
+                        invoice.recipient
+                      )}
+                    </a>
+
+                    <CopyButton
+                      value={
+                        invoice.recipient
+                      }
+                      label=""
+                      className="text-slate-400 hover:text-blue-600"
+                    />
+                  </span>
+                </div>
+
+                {/* Network */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-400">
+                    Network
+                  </span>
+
+                  <span className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    Arc Testnet
+                  </span>
+                </div>
+
+                {/* Requested */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-400">
+                    Requested
+                  </span>
+
+                  <span className="text-xs font-medium text-slate-700">
+                    {formatDate(
+                      invoice.createdAt
+                    )}
+                  </span>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Invalid invoice */}
+            {invoiceValid === false && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center">
+                <p className="text-sm font-semibold text-red-600">
+                  Invalid payment request
+                </p>
+
+                <p className="mt-1 text-xs text-red-500">
+                  Do not send funds to this request.
+                </p>
+              </div>
+            )}
+
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-dashed border-slate-200" />
+
+          {/* Payment action */}
+          <div className="space-y-4 p-6 sm:p-7">
+
+            {/* Paid */}
+            {status === "paid" &&
+            payment ? (
+              <div className="rounded-2xl bg-emerald-50 p-6 text-center">
+
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                  <span className="text-2xl font-bold">
+                    ✓
+                  </span>
+                </div>
+
+                <p className="mt-4 text-sm font-semibold text-slate-800">
+                  Payment confirmed
+                </p>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Your payment has been verified
+                  on-chain.
+                </p>
+
                 <a
-                  href={explorerAddressUrl(
-                    invoice.recipient
+                  href={explorerTxUrl(
+                    payment.txHash
                   )}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-mono text-ink hover:text-accent"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 font-mono text-xs font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
                 >
-                  {shortAddress(
-                    invoice.recipient
+                  {shortHash(
+                    payment.txHash
                   )}
+                  <span>↗</span>
                 </a>
 
-                <CopyButton
-                  value={invoice.recipient}
-                  label=""
-                />
-              </span>
-            </div>
+                <p className="mt-3 text-xs text-slate-400">
+                  Paid from{" "}
+                  <span className="font-mono">
+                    {shortAddress(
+                      payment.from
+                    )}
+                  </span>
+                </p>
+              </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-ink-faint">
-                Network
-              </span>
+            ) : isRecipient ? (
 
-              <span className="text-ink">
-                Arc Testnet
-              </span>
-            </div>
+              /* Recipient */
+              <div className="space-y-4">
 
-            <div className="flex items-center justify-between">
-              <span className="text-ink-faint">
-                Requested
-              </span>
+                <div className="rounded-2xl bg-blue-50 p-5 text-center">
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
+                    <span className="text-lg">
+                      ↗
+                    </span>
+                  </div>
 
-              <span className="text-ink">
-                {formatDate(
-                  invoice.createdAt
-                )}
-              </span>
-            </div>
+                  <p className="mt-3 text-sm font-semibold text-slate-800">
+                    This is your request
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Share the link below to get paid.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-slate-500">
+                    {shareUrl}
+                  </span>
+
+                  <CopyButton
+                    value={shareUrl}
+                    label="Copy link"
+                    copiedLabel="Copied"
+                    className="shrink-0 rounded-lg bg-white px-2.5 py-1.5 text-blue-600 shadow-sm hover:bg-blue-50"
+                  />
+                </div>
+              </div>
+
+            ) : !isConnected ? (
+
+              /* Not connected */
+              <div className="space-y-4">
+
+                <div className="rounded-2xl bg-blue-50 px-5 py-4 text-center">
+                  <p className="text-sm font-semibold text-slate-800">
+                    Ready to pay?
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Connect your wallet to continue.
+                  </p>
+                </div>
+
+                <div className="flex justify-center">
+                  <WalletWidget />
+                </div>
+
+              </div>
+
+            ) : !onArcTestnet ? (
+
+              /* Wrong network */
+              <div className="space-y-3">
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
+                  <p className="text-sm font-semibold text-amber-800">
+                    Wrong network
+                  </p>
+
+                  <p className="mt-1 text-xs text-amber-700/70">
+                    Switch your wallet to Arc Testnet
+                    to continue.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    switchChain({
+                      chainId:
+                        arcTestnet.id,
+                    })
+                  }
+                  disabled={switching}
+                  className="w-full rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {switching
+                    ? "Switching…"
+                    : "Switch to Arc Testnet"}
+                </button>
+
+              </div>
+
+            ) : invoiceValid !== true ? (
+
+              /* Invoice verification */
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5 text-center">
+                <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-blue-100 border-t-blue-600" />
+
+                <p className="mt-3 text-sm font-medium text-slate-600">
+                  Verifying payment request…
+                </p>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  Checking the signed request before
+                  allowing payment.
+                </p>
+              </div>
+
+            ) : (
+
+              /* Payment */
+              <>
+                {/* Pending transaction */}
+                {pendingTxHash &&
+                  confirming && (
+                    <a
+                      href={explorerTxUrl(
+                        pendingTxHash
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 font-mono text-xs text-blue-700 transition hover:bg-blue-100"
+                    >
+                      <span>
+                        Confirming{" "}
+                        {shortHash(
+                          pendingTxHash
+                        )}
+                        …
+                      </span>
+
+                      <span>
+                        ↗
+                      </span>
+                    </a>
+                  )}
+
+                {/* Pay button */}
+                <button
+                  type="button"
+                  onClick={handlePay}
+                  disabled={
+                    writing ||
+                    confirming ||
+                    approvalPending ||
+                    insufficientBalance
+                  }
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(37,99,235,0.2)] transition hover:bg-blue-700 hover:shadow-[0_10px_24px_rgba(37,99,235,0.24)] active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                >
+                  {approvalPending ? (
+                    "Approve USDC for Permit2…"
+                  ) : writing ? (
+                    "Confirm in wallet…"
+                  ) : confirming ? (
+                    "Verifying payment…"
+                  ) : insufficientBalance ? (
+                    "Insufficient USDC balance"
+                  ) : needsApproval ? (
+                    `Enable ${formatUsdc(
+                      invoice.amount
+                    )} USDC payment`
+                  ) : (
+                    `Pay ${formatUsdc(
+                      invoice.amount
+                    )} USDC`
+                  )}
+                </button>
+
+                <p className="text-center text-[11px] leading-5 text-slate-400">
+                  First-time payers may be asked to
+                  approve Permit2 once. Your payment
+                  uses a unique invoice nonce so
+                  another transfer cannot satisfy this
+                  request.
+                </p>
+
+                {/* Balance */}
+                {insufficientBalance &&
+                  balance !== undefined && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
+                      <p className="text-xs font-medium text-amber-800">
+                        Balance:{" "}
+                        {formatUsdc(
+                          formatUnits(
+                            balance,
+                            USDC_DECIMALS
+                          )
+                        )}{" "}
+                        USDC
+                      </p>
+
+                      <p className="mt-1 text-[10px] text-amber-700/70">
+                        Get testnet USDC from the
+                        faucet in your wallet menu.
+                      </p>
+                    </div>
+                  )}
+              </>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center">
+                <p className="text-sm font-medium text-red-600">
+                  {error}
+                </p>
+              </div>
+            )}
 
           </div>
-
-          {/* Invalid invoice */}
-          {invoiceValid === false && (
-            <p className="rounded-lg border border-bad/25 bg-bad/10 px-4 py-2.5 text-center text-sm text-bad">
-              Invalid payment request signature.
-              Do not send funds.
-            </p>
-          )}
-
         </div>
 
-        <div className="perforation" />
+        {/* Footer */}
+        <div className="mt-6 flex items-center justify-center gap-2 text-center text-[11px] text-slate-400">
+          <ShieldIcon />
 
-        {/* Payment action */}
-        <div className="space-y-4 p-7">
-
-          {/* Paid */}
-          {status === "paid" && payment ? (
-            <div className="space-y-3 text-center">
-
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-good/10">
-                <span className="text-xl text-good">
-                  ✓
-                </span>
-              </div>
-
-              <p className="text-sm font-medium text-ink">
-                Payment confirmed on-chain
-              </p>
-
-              <a
-                href={explorerTxUrl(
-                  payment.txHash
-                )}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 font-mono text-xs text-ink-dim hover:border-accent hover:text-accent"
-              >
-                {shortHash(
-                  payment.txHash
-                )}{" "}
-                ↗
-              </a>
-
-              <p className="text-xs text-ink-faint">
-                Paid from{" "}
-                {shortAddress(
-                  payment.from
-                )}
-              </p>
-            </div>
-
-          ) : isRecipient ? (
-
-            /* Recipient */
-            <div className="space-y-3">
-
-              <p className="text-center text-sm text-ink-dim">
-                This is your request.
-                Share the link below to get paid.
-              </p>
-
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-canvas-raised/60 px-4 py-3">
-
-                <span className="truncate font-mono text-xs text-ink-dim">
-                  {shareUrl}
-                </span>
-
-                <CopyButton
-                  value={shareUrl}
-                  label="Copy link"
-                  copiedLabel="Copied"
-                />
-
-              </div>
-            </div>
-
-          ) : !isConnected ? (
-
-            /* Not connected */
-            <div className="space-y-3">
-
-              <p className="text-center text-sm text-ink-dim">
-                Connect a wallet to pay
-              </p>
-
-              <div className="flex justify-center">
-                <WalletWidget />
-              </div>
-
-            </div>
-
-          ) : !onArcTestnet ? (
-
-            /* Wrong network */
-            <button
-              onClick={() =>
-                switchChain({
-                  chainId:
-                    arcTestnet.id,
-                })
-              }
-              disabled={switching}
-              className="w-full rounded-lg border border-warn/25 bg-warn/10 py-3.5 text-sm font-medium text-warn hover:bg-warn/15 disabled:opacity-60"
-            >
-              {switching
-                ? "Switching…"
-                : "Switch to Arc Testnet"}
-            </button>
-
-          ) : invoiceValid !== true ? (
-
-            /* Invoice verification */
-            <p className="text-center text-sm text-ink-faint">
-              Verifying payment request…
-            </p>
-
-          ) : (
-
-            /* Payment */
-            <>
-              {pendingTxHash &&
-                confirming && (
-                  <a
-                    href={explorerTxUrl(
-                      pendingTxHash
-                    )}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block rounded-lg border border-line bg-canvas-raised/60 px-4 py-2.5 text-center font-mono text-xs text-ink-dim hover:text-accent"
-                  >
-                    Confirming{" "}
-                    {shortHash(
-                      pendingTxHash
-                    )}
-                    …
-                  </a>
-                )}
-
-              <button
-                type="button"
-                onClick={handlePay}
-                disabled={
-                  writing ||
-                  confirming ||
-                  approvalPending ||
-                  insufficientBalance
-                }
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-3.5 text-sm font-semibold text-white shadow-pop hover:bg-accent-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-faint disabled:shadow-none"
-              >
-                {approvalPending ? (
-                  "Approve USDC for Permit2…"
-                ) : writing ? (
-                  "Confirm in wallet…"
-                ) : confirming ? (
-                  "Verifying payment…"
-                ) : insufficientBalance ? (
-                  "Insufficient USDC balance"
-                ) : needsApproval ? (
-                  `Enable ${formatUsdc(
-                    invoice.amount
-                  )} USDC payment`
-                ) : (
-                  `Pay ${formatUsdc(
-                    invoice.amount
-                  )} USDC`
-                )}
-              </button>
-
-              <p className="text-center text-[11px] leading-relaxed text-ink-faint">
-                First-time payers may be asked
-                to approve Permit2 once. The
-                payment then uses a unique
-                invoice nonce so another
-                transfer cannot satisfy this
-                request.
-              </p>
-
-              {insufficientBalance &&
-                balance !== undefined && (
-                  <p className="text-center text-xs text-ink-faint">
-                    Balance:{" "}
-                    {formatUsdc(
-                      formatUnits(
-                        balance,
-                        USDC_DECIMALS
-                      )
-                    )}{" "}
-                    USDC — get more from the
-                    faucet in your wallet menu.
-                  </p>
-                )}
-            </>
-          )}
-
-          {/* Error */}
-          {error && (
-            <p className="rounded-lg border border-bad/25 bg-bad/10 px-4 py-2.5 text-center text-sm text-bad">
-              {error}
-            </p>
-          )}
-
+          <span>
+            Payments settle directly wallet-to-wallet
+            on Arc.
+          </span>
         </div>
+
+        <p className="mt-1 text-center text-[10px] text-slate-400">
+          Arc Pay never holds your funds.
+        </p>
       </div>
-
-      <p className="mt-6 text-center text-xs text-ink-faint">
-        Payments settle directly wallet-to-wallet
-        on Arc. Arc Pay never holds funds.
-      </p>
     </div>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className="h-4 w-4 shrink-0 text-blue-500"
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3.5 19 6.2v5.1c0 4.3-2.7 7.5-7 9.2-4.3-1.7-7-4.9-7-9.2V6.2L12 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="m8.8 12 2.1 2.1 4.4-4.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

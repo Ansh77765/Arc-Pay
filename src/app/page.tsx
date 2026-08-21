@@ -3,53 +3,46 @@
 import { TopBar } from "@/components/TopBar";
 import { CreatePaymentForm } from "@/components/CreatePaymentForm";
 import {
-  Home,
-  ArrowUpRight,
   ArrowDownLeft,
-  Activity,
-  Settings,
+  ArrowUpRight,
+  Copy,
   Wallet,
-  ShieldCheck,
-  Plus,
+  Activity,
   ChevronRight,
+  Eye,
+  EyeOff,
+  Plus,
 } from "lucide-react";
+import { useState } from "react";
+import { useAccount } from "wagmi";
 
 function Sidebar() {
   return (
-    <aside className="hidden w-[220px] shrink-0 border-r border-[#E8EAF0] bg-white lg:flex lg:min-h-[calc(100vh-68px)] lg:flex-col">
-      <div className="flex-1 px-4 py-6">
-        <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#A0A5B1]">
-          Menu
-        </p>
-
+    <aside className="hidden w-[220px] shrink-0 border-r border-[#E7E7EA] bg-white lg:flex lg:min-h-[calc(100vh-68px)] lg:flex-col">
+      <div className="px-4 py-5">
         <nav className="space-y-1">
           <SidebarItem
-            icon={<Home size={17} />}
             label="Home"
+            icon={<HomeIcon />}
             active
           />
 
           <SidebarItem
-            icon={<ArrowUpRight size={17} />}
-            label="Send"
+            label="Payments"
+            icon={<PaymentsIcon />}
           />
 
           <SidebarItem
-            icon={<ArrowDownLeft size={17} />}
-            label="Receive"
-          />
-
-          <SidebarItem
-            icon={<Activity size={17} />}
             label="Activity"
+            icon={<Activity size={20} strokeWidth={1.7} />}
           />
         </nav>
       </div>
 
-      <div className="border-t border-[#E8EAF0] p-4">
+      <div className="mt-auto border-t border-[#EEEEF1] p-4">
         <SidebarItem
-          icon={<Settings size={17} />}
           label="Settings"
+          icon={<SettingsIcon />}
         />
       </div>
     </aside>
@@ -57,21 +50,21 @@ function Sidebar() {
 }
 
 function SidebarItem({
-  icon,
   label,
+  icon,
   active = false,
 }: {
-  icon: React.ReactNode;
   label: string;
+  icon: React.ReactNode;
   active?: boolean;
 }) {
   return (
     <button
       type="button"
-      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium transition ${
+      className={`flex w-full items-center gap-4 rounded-[24px] px-4 py-3 text-[15px] transition ${
         active
-          ? "bg-[#EEF2FF] text-[#5B5FEF]"
-          : "text-[#6B7280] hover:bg-[#F7F8FC] hover:text-[#111318]"
+          ? "bg-[#F5F5F6] font-semibold text-[#111111]"
+          : "font-normal text-[#242424] hover:bg-[#F7F7F8]"
       }`}
     >
       {icon}
@@ -80,268 +73,371 @@ function SidebarItem({
   );
 }
 
-export default function HomePage() {
+function HomeIcon() {
   return (
-    <div className="min-h-screen bg-[#F7F8FC] text-[#111318]">
-      {/* Existing real wallet connection */}
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5.5 9v11h13V9" />
+      <path d="M9.5 20v-6h5v6" />
+    </svg>
+  );
+}
+
+function PaymentsIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M7 15h4" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 1.7-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20h-2.4v-.2a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.7-1.7.06-.06A1.7 1.7 0 0 0 8.46 15a1.7 1.7 0 0 0-1.56-1.03H6v-2.4h.9a1.7 1.7 0 0 0 1.56-1.03 1.7 1.7 0 0 0-.34-1.88l-.06-.06 1.7-1.7.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 12.73 5.7V5h2.4v.7a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.7 1.7-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.04v2.4h-.04A1.7 1.7 0 0 0 19.4 15Z" />
+    </svg>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      className="group flex w-[74px] flex-col items-center gap-2"
+    >
+      <span className="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-[#F5F5F6] text-[#111111] transition group-hover:bg-[#EEEEF0]">
+        {icon}
+      </span>
+
+      <span className="text-[13px] text-[#171717]">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+export default function HomePage() {
+  const { address, isConnected } = useAccount();
+  const [hideBalance, setHideBalance] = useState(false);
+
+  const shortAddress = address
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : "Not connected";
+
+  return (
+    <div className="min-h-screen bg-white text-[#111111]">
       <TopBar />
 
       <div className="mx-auto flex max-w-[1440px]">
         <Sidebar />
 
-        <main className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10">
-          {/* Header */}
-          <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5B5FEF]">
-                Arc Pay
-              </p>
+        <main className="min-w-0 flex-1">
+          <div className="px-6 pb-16 pt-8 sm:px-10 lg:px-12">
 
-              <h1 className="text-[28px] font-semibold tracking-[-0.04em] text-[#111318] sm:text-[32px]">
+            {/* PAGE TITLE */}
+            <div className="mb-8">
+              <h1 className="text-[17px] font-semibold text-[#111111]">
                 Home
               </h1>
-
-              <p className="mt-1.5 text-[13px] text-[#737987]">
-                Manage your USDC payments on Arc.
-              </p>
             </div>
 
-            <div className="flex items-center gap-2 rounded-full border border-[#E3E6ED] bg-white px-3.5 py-2 shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            {/* MAIN GRID */}
+            <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_350px]">
 
-              <span className="text-[11px] font-medium text-[#596170]">
-                Arc Testnet
-              </span>
-            </div>
-          </header>
+              {/* LEFT */}
+              <div className="min-w-0">
 
-          {/* Balance */}
-          <section className="mb-6 overflow-hidden rounded-[24px] border border-[#E5E8EF] bg-white shadow-[0_12px_40px_-25px_rgba(20,30,60,0.25)]">
-            <div className="flex flex-col justify-between gap-8 p-7 sm:p-9 lg:flex-row lg:items-center lg:p-10">
-              <div>
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8B919D]">
-                  <Wallet size={15} />
-                  Available balance
-                </div>
+                {/* WALLET + BALANCE */}
+                <section>
+                  <div className="flex items-center gap-2 text-[14px] text-[#50515A]">
+                    <span>Smart Wallet</span>
 
-                <div className="mt-4 flex items-baseline gap-3">
-                  <span className="text-[48px] font-semibold tracking-[-0.06em] text-[#111318] sm:text-[58px]">
-                    —
-                  </span>
-
-                  <span className="text-sm font-semibold text-[#5B5FEF]">
-                    USDC
-                  </span>
-                </div>
-
-                <p className="mt-2 text-[12px] text-[#9AA0AA]">
-                  Connect your wallet to view your balance.
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  className="flex h-11 items-center gap-2 rounded-xl border border-[#DDE1E9] bg-white px-5 text-[12px] font-semibold text-[#687080] transition hover:border-[#C8CDD8] hover:bg-[#F9FAFC]"
-                >
-                  <ArrowUpRight size={16} />
-                  Send
-                </button>
-
-                <a
-                  href="#request-usdc"
-                  className="flex h-11 items-center gap-2 rounded-xl bg-[#5B5FEF] px-5 text-[12px] font-semibold text-white shadow-[0_8px_20px_-10px_rgba(91,95,239,.8)] transition hover:-translate-y-0.5 hover:bg-[#4F53DE]"
-                >
-                  <Plus size={16} />
-                  Request
-                </a>
-              </div>
-            </div>
-
-            <div className="grid border-t border-[#EEF0F4] sm:grid-cols-3">
-              <InfoItem
-                label="Network"
-                value="Arc Testnet"
-              />
-
-              <InfoItem
-                label="Currency"
-                value="USD Coin · USDC"
-                bordered
-              />
-
-              <InfoItem
-                label="Settlement"
-                value="Non-custodial"
-                icon={<ShieldCheck size={14} />}
-                success
-              />
-            </div>
-          </section>
-
-          {/* Main content */}
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
-            {/* Activity */}
-            <section className="overflow-hidden rounded-[22px] border border-[#E5E8EF] bg-white shadow-[0_12px_40px_-28px_rgba(20,30,60,0.22)]">
-              <div className="flex items-center justify-between border-b border-[#EEF0F4] px-6 py-5">
-                <div>
-                  <h2 className="text-[14px] font-semibold text-[#20242D]">
-                    Recent activity
-                  </h2>
-
-                  <p className="mt-1 text-[11px] text-[#969CA7]">
-                    Your latest payments and requests
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  className="flex items-center gap-1 text-[11px] font-semibold text-[#5B5FEF]"
-                >
-                  View all
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-
-              <div className="flex min-h-[350px] flex-col items-center justify-center px-6 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F0F1FF] text-[#5B5FEF]">
-                  <Activity size={22} />
-                </div>
-
-                <h3 className="mt-5 text-[14px] font-semibold text-[#343944]">
-                  No activity yet
-                </h3>
-
-                <p className="mt-2 max-w-[290px] text-[11px] leading-5 text-[#979DA8]">
-                  Your completed payment activity will
-                  appear here.
-                </p>
-
-                <a
-                  href="#request-usdc"
-                  className="mt-5 rounded-xl border border-[#DCDFFB] bg-[#F5F5FF] px-4 py-2.5 text-[11px] font-semibold text-[#5B5FEF] transition hover:bg-[#EEEDFF]"
-                >
-                  Create payment request
-                </a>
-              </div>
-            </section>
-
-            {/* Request */}
-            <section
-              id="request-usdc"
-              className="scroll-mt-24 overflow-hidden rounded-[22px] border border-[#E5E8EF] bg-white shadow-[0_12px_40px_-28px_rgba(20,30,60,0.22)]"
-            >
-              <div className="border-b border-[#EEF0F4] px-6 py-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#5B5FEF]">
-                      Payment request
-                    </p>
-
-                    <h2 className="mt-2 text-[20px] font-semibold tracking-[-0.035em] text-[#20242D]">
-                      Request USDC
-                    </h2>
-
-                    <p className="mt-2 text-[11px] leading-5 text-[#969CA7]">
-                      Create a secure payment request
-                      and share it with anyone.
-                    </p>
+                    <button
+                      type="button"
+                      className="text-[#8B8C94] hover:text-[#111111]"
+                      onClick={() => {
+                        if (address) {
+                          navigator.clipboard.writeText(address);
+                        }
+                      }}
+                    >
+                      <Copy size={15} />
+                    </button>
                   </div>
 
-                  <span className="rounded-lg bg-[#F0F1FF] px-2.5 py-1.5 text-[9px] font-bold text-[#5B5FEF]">
-                    USDC
-                  </span>
+                  <div className="mt-2 flex items-center gap-2">
+                    <h2 className="text-[46px] font-semibold tracking-[-0.055em] sm:text-[52px]">
+                      {hideBalance ? "••••" : "$0.00"}
+                    </h2>
+
+                    <ChevronRight
+                      size={22}
+                      className="text-[#8D8E95]"
+                    />
+                  </div>
+
+                  <div className="mt-1 flex items-center gap-2 text-[12px] text-[#777982]">
+                    <span>
+                      {isConnected
+                        ? shortAddress
+                        : "Connect wallet to view balance"}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setHideBalance((value) => !value)
+                      }
+                      className="text-[#96979F]"
+                      aria-label="Toggle balance visibility"
+                    >
+                      {hideBalance ? (
+                        <Eye size={14} />
+                      ) : (
+                        <EyeOff size={14} />
+                      )}
+                    </button>
+                  </div>
+                </section>
+
+                {/* QUICK ACTIONS */}
+                <section className="mt-9">
+                  <div className="flex gap-5">
+                    <ActionButton
+                      label="Send"
+                      icon={
+                        <ArrowUpRight
+                          size={25}
+                          strokeWidth={1.7}
+                        />
+                      }
+                    />
+
+                    <ActionButton
+                      label="Receive"
+                      icon={
+                        <ArrowDownLeft
+                          size={25}
+                          strokeWidth={1.7}
+                        />
+                      }
+                    />
+                  </div>
+                </section>
+
+                {/* NETWORK STRIP */}
+                <section className="mt-12 rounded-[18px] border border-[#E9E9EC] bg-white px-5 py-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F5F5F6]">
+                        <span className="h-2.5 w-2.5 rounded-full bg-[#31A66A]" />
+                      </span>
+
+                      <div>
+                        <p className="text-[13px] font-medium">
+                          Arc Network
+                        </p>
+
+                        <p className="mt-0.5 text-[11px] text-[#888991]">
+                          Arc Testnet
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className="text-[11px] text-[#31A66A]">
+                      Connected
+                    </span>
+                  </div>
+                </section>
+
+                {/* TOKENS */}
+                <section className="mt-10">
+                  <div className="border-b border-[#E8E8EB]">
+                    <div className="flex gap-8">
+                      <button
+                        type="button"
+                        className="relative pb-4 text-[15px] font-semibold text-[#111111]"
+                      >
+                        Tokens
+
+                        <span className="absolute bottom-[-1px] left-0 h-[2px] w-full bg-[#111111]" />
+                      </button>
+
+                      <button
+                        type="button"
+                        className="pb-4 text-[15px] font-medium text-[#999AA2]"
+                      >
+                        Activity
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-[18px] border border-[#E8E8EB] bg-white">
+                    <div className="flex items-center justify-between px-5 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F1F1F2] text-[13px] font-bold">
+                          $
+                        </div>
+
+                        <div>
+                          <p className="text-[15px] font-medium">
+                            USDC
+                          </p>
+
+                          <p className="mt-1 text-[11px] text-[#96979F]">
+                            USD Coin
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-[15px] font-semibold">
+                          $0.00
+                        </p>
+
+                        <p className="mt-1 text-[11px] text-[#96979F]">
+                          0.00 USDC
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* PAYMENT REQUEST */}
+                <section className="mt-10">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-[19px] font-semibold">
+                        Payment requests
+                      </h2>
+
+                      <p className="mt-1 text-[12px] text-[#898A92]">
+                        Create a request to receive USDC.
+                      </p>
+                    </div>
+
+                    <Plus
+                      size={19}
+                      className="text-[#777982]"
+                    />
+                  </div>
+
+                  <div className="rounded-[18px] border border-[#E8E8EB] bg-white p-6">
+                    <CreatePaymentForm />
+                  </div>
+                </section>
+
+              </div>
+
+              {/* RIGHT CARD */}
+              <aside className="hidden xl:block">
+                <div className="sticky top-[100px] rounded-[20px] border border-[#E7E7EA] bg-white p-6">
+
+                  <div className="flex h-[120px] items-center justify-center rounded-[15px] bg-[#F7F7F8]">
+                    <div className="flex h-[68px] w-[68px] items-center justify-center rounded-[18px] bg-white shadow-sm">
+                      <Wallet
+                        size={32}
+                        strokeWidth={1.4}
+                        className="text-[#55565D]"
+                      />
+                    </div>
+                  </div>
+
+                  <h2 className="mt-6 text-[22px] font-semibold tracking-[-0.03em]">
+                    Your wallet
+                  </h2>
+
+                  <p className="mt-2 text-[13px] leading-5 text-[#777982]">
+                    Connect your wallet to start sending
+                    and receiving USDC on Arc.
+                  </p>
+
+                  <div className="mt-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F5F5F6]">
+                        <Wallet
+                          size={17}
+                          strokeWidth={1.7}
+                        />
+                      </span>
+
+                      <div>
+                        <p className="text-[12px] font-medium">
+                          Wallet
+                        </p>
+
+                        <p className="mt-0.5 text-[11px] text-[#92939B]">
+                          {shortAddress}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F5F5F6]">
+                        <Activity
+                          size={17}
+                          strokeWidth={1.7}
+                        />
+                      </span>
+
+                      <div>
+                        <p className="text-[12px] font-medium">
+                          Network
+                        </p>
+
+                        <p className="mt-0.5 text-[11px] text-[#92939B]">
+                          Arc Testnet
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-7 rounded-[14px] bg-[#F7F7F8] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-[#999AA2]">
+                      Security
+                    </p>
+
+                    <p className="mt-2 text-[11px] leading-5 text-[#686970]">
+                      Non-custodial. Your wallet remains
+                      under your control.
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              <div className="p-6">
-                <CreatePaymentForm />
-              </div>
-            </section>
+              </aside>
+            </div>
           </div>
-
-          {/* Trust / information */}
-          <section className="mt-6 grid gap-4 md:grid-cols-3">
-            <FeatureCard
-              title="Simple payment requests"
-              description="Create a request, share the link, and get paid directly."
-            />
-
-            <FeatureCard
-              title="Non-custodial"
-              description="Your funds and private keys remain under your control."
-            />
-
-            <FeatureCard
-              title="On-chain settlement"
-              description="Completed payments can be verified directly on Arc."
-            />
-          </section>
-
-          <footer className="mt-10 border-t border-[#E5E8EF] pt-5 text-[10px] text-[#A0A5AF]">
-            Arc Pay · USDC payments · Arc Testnet
-          </footer>
         </main>
       </div>
-    </div>
-  );
-}
-
-function InfoItem({
-  label,
-  value,
-  icon,
-  bordered = false,
-  success = false,
-}: {
-  label: string;
-  value: string;
-  icon?: React.ReactNode;
-  bordered?: boolean;
-  success?: boolean;
-}) {
-  return (
-    <div
-      className={`px-6 py-4 ${
-        bordered ? "border-y border-[#EEF0F4] sm:border-x sm:border-y-0" : ""
-      }`}
-    >
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#A0A5AF]">
-        {label}
-      </p>
-
-      <div
-        className={`mt-1.5 flex items-center gap-1.5 text-[11px] font-medium ${
-          success ? "text-emerald-600" : "text-[#596170]"
-        }`}
-      >
-        {icon}
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function FeatureCard({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-[18px] border border-[#E5E8EF] bg-white p-5 shadow-[0_8px_30px_-25px_rgba(20,30,60,0.25)]">
-      <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-[#F0F1FF] text-[#5B5FEF]">
-        <ShieldCheck size={17} />
-      </div>
-
-      <h3 className="text-[12px] font-semibold text-[#343944]">
-        {title}
-      </h3>
-
-      <p className="mt-1.5 text-[10px] leading-5 text-[#969CA7]">
-        {description}
-      </p>
     </div>
   );
 }

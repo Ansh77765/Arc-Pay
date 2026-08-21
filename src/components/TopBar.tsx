@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,7 +18,6 @@ import {
   ExternalLink,
   LogOut,
   Check,
-  Network,
   ShieldCheck,
   Wallet,
   ArrowRight,
@@ -147,11 +147,11 @@ export function TopBar() {
 
   if (!mounted) {
     return (
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#07090d]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] max-w-[1320px] items-center justify-between px-5 sm:px-8 lg:px-10">
           <Brand />
 
-          <div className="h-10 w-[132px] animate-pulse rounded-xl bg-white/[0.04]" />
+          <div className="h-10 w-[132px] animate-pulse rounded-xl bg-slate-100" />
         </div>
       </header>
     );
@@ -159,10 +159,13 @@ export function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#07090d]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] max-w-[1320px] items-center justify-between px-5 sm:px-8 lg:px-10">
+
+          {/* Brand */}
           <Brand />
 
+          {/* Navigation */}
           <nav className="hidden items-center gap-1 md:flex">
             <NavItem active>
               Overview
@@ -177,6 +180,7 @@ export function TopBar() {
             </NavItem>
           </nav>
 
+          {/* Wallet */}
           {wrongNetwork ? (
             <button
               type="button"
@@ -186,7 +190,7 @@ export function TopBar() {
                   chainId: arcTestnet.id,
                 })
               }
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.07] px-3.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-400/[0.11] disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
             >
               <AlertTriangle
                 size={14}
@@ -199,6 +203,7 @@ export function TopBar() {
             </button>
           ) : connected ? (
             <div className="relative">
+
               <button
                 type="button"
                 onClick={() =>
@@ -206,12 +211,12 @@ export function TopBar() {
                     (value) => !value
                   )
                 }
-                className="flex h-10 items-center gap-2.5 rounded-xl border border-white/[0.09] bg-white/[0.035] px-2.5 pr-3 transition hover:bg-white/[0.06]"
+                className="flex h-10 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 pr-3 shadow-sm transition hover:border-blue-200 hover:bg-blue-50/40"
               >
                 <WalletAvatar />
 
                 <div className="hidden text-left sm:block">
-                  <div className="text-[11px] font-medium text-white/75">
+                  <div className="text-[11px] font-semibold text-slate-700">
                     {balanceLoading
                       ? shortAddr
                       : `${formatUsdc(
@@ -222,8 +227,8 @@ export function TopBar() {
                         )} USDC`}
                   </div>
 
-                  <div className="mt-0.5 flex items-center gap-1 text-[9px] text-white/25">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  <div className="mt-0.5 flex items-center gap-1 text-[9px] text-slate-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
 
                     Arc Testnet
                   </div>
@@ -232,7 +237,7 @@ export function TopBar() {
                 <ChevronDown
                   size={14}
                   strokeWidth={1.8}
-                  className={`ml-1 text-white/25 transition ${
+                  className={`ml-1 text-slate-300 transition ${
                     accountMenuOpen
                       ? "rotate-180"
                       : ""
@@ -248,6 +253,7 @@ export function TopBar() {
                   onCopy={copyAddress}
                   onDisconnect={() => {
                     disconnect();
+
                     setAccountMenuOpen(
                       false
                     );
@@ -259,14 +265,12 @@ export function TopBar() {
             <button
               type="button"
               onClick={openWalletModal}
-              className="group flex h-10 items-center gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.045] px-3.5 text-xs font-semibold text-white transition hover:border-white/[0.16] hover:bg-white/[0.07]"
+              className="group flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/20"
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/[0.07] text-white/65">
-                <Wallet
-                  size={15}
-                  strokeWidth={1.8}
-                />
-              </span>
+              <Wallet
+                size={15}
+                strokeWidth={1.8}
+              />
 
               <span>
                 Connect wallet
@@ -294,20 +298,19 @@ export function TopBar() {
 function Brand() {
   return (
     <div className="flex items-center gap-3">
-      <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/[0.09] bg-white/[0.04]">
-        <div className="absolute inset-0 bg-blue-500/[0.08]" />
 
-        <div className="relative flex h-5 w-5 items-center justify-center rounded-md bg-white text-[10px] font-bold text-black">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-600/20">
+        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-white text-[11px] font-black text-blue-600">
           A
         </div>
       </div>
 
       <div className="hidden sm:block">
-        <div className="text-[14px] font-semibold tracking-[-0.02em]">
+        <div className="text-[14px] font-bold tracking-[-0.02em] text-slate-900">
           Arc Pay
         </div>
 
-        <div className="text-[9px] font-medium uppercase tracking-[0.14em] text-white/25">
+        <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">
           Payments
         </div>
       </div>
@@ -330,15 +333,6 @@ function WalletModal({
     connector: Connector
   ) => void;
 }) {
-  /*
-   * Keep every discovered wallet.
-   *
-   * EIP-6963 lets Wagmi discover multiple
-   * injected wallets such as MetaMask, Rabby,
-   * OKX, Brave, Phantom, etc.
-   *
-   * We only remove exact duplicate connector IDs.
-   */
   const uniqueConnectors =
     connectors.filter(
       (connector, index, array) =>
@@ -350,11 +344,12 @@ function WalletModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Connect wallet"
     >
+
       {/* Backdrop */}
       <button
         type="button"
@@ -363,45 +358,44 @@ function WalletModal({
         className="absolute inset-0 cursor-default"
       />
 
-      {/* Main modal */}
-      <div className="relative z-10 flex max-h-[calc(100vh-32px)] w-full max-w-[560px] flex-col overflow-hidden rounded-[24px] border border-white/[0.12] bg-[#111111] shadow-[0_35px_100px_rgba(0,0,0,0.8)]">
+      {/* Modal */}
+      <div className="relative z-10 flex max-h-[calc(100vh-32px)] w-full max-w-[500px] flex-col overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
 
-        {/* Close button */}
+        {/* Close */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-5 top-5 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.13] text-white/75 transition hover:bg-white/[0.07] hover:text-white"
+          className="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
         >
           <X
-            size={24}
+            size={19}
             strokeWidth={1.8}
           />
         </button>
 
         {/* Header */}
-        <div className="shrink-0 px-8 pb-6 pt-9 text-center">
+        <div className="px-7 pb-6 pt-9 text-center">
 
-          {/* Arc Pay logo */}
-          <div className="mx-auto flex h-[92px] w-[92px] items-center justify-center rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 shadow-[0_12px_35px_rgba(37,99,235,0.28)]">
-            <div className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#111111]">
-              <div className="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-[25px] font-black text-white">
-                A
-              </div>
+          {/* Arc logo */}
+          <div className="mx-auto flex h-[76px] w-[76px] items-center justify-center rounded-[22px] bg-blue-600 shadow-[0_12px_30px_rgba(37,99,235,0.22)]">
+            <div className="flex h-[58px] w-[58px] items-center justify-center rounded-[17px] bg-white text-[25px] font-black text-blue-600">
+              A
             </div>
           </div>
 
-          <h2 className="mt-6 text-[28px] font-bold tracking-[-0.035em] text-white">
+          <h2 className="mt-5 text-[25px] font-bold tracking-[-0.035em] text-slate-900">
             Connect with Arc Pay
           </h2>
 
-          <p className="mt-2 text-[13px] text-white/40">
+          <p className="mt-2 text-[13px] text-slate-400">
             Choose a wallet to continue
           </p>
         </div>
 
         {/* Wallet list */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-5">
-          <div className="overflow-hidden rounded-[18px] border border-white/[0.13] bg-[#151515]">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
 
             {uniqueConnectors.map(
               (connector, index) => (
@@ -423,17 +417,19 @@ function WalletModal({
             {uniqueConnectors.length ===
               0 && (
               <div className="px-6 py-12 text-center">
-                <Wallet
-                  size={34}
-                  strokeWidth={1.5}
-                  className="mx-auto text-white/20"
-                />
 
-                <p className="mt-4 text-sm font-medium text-white/60">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
+                  <Wallet
+                    size={22}
+                    className="text-blue-500"
+                  />
+                </div>
+
+                <p className="mt-4 text-sm font-semibold text-slate-700">
                   No wallets detected
                 </p>
 
-                <p className="mt-2 text-xs text-white/30">
+                <p className="mt-1 text-xs text-slate-400">
                   Install a browser wallet and
                   refresh the page.
                 </p>
@@ -441,9 +437,9 @@ function WalletModal({
             )}
           </div>
 
-          {/* Connection error */}
+          {/* Error */}
           {error && (
-            <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3 text-xs leading-5 text-red-300">
+            <div className="mt-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs leading-5 text-red-600">
               {error.message.includes(
                 "User rejected"
               )
@@ -454,15 +450,15 @@ function WalletModal({
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 border-t border-white/[0.08] px-7 py-5 text-center">
-          <div className="flex items-center justify-center gap-2 text-[11px] text-white/25">
+        <div className="border-t border-slate-100 px-6 py-4">
+          <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400">
             <ShieldCheck
-              size={15}
+              size={14}
               strokeWidth={1.7}
+              className="text-blue-500"
             />
 
-            Arc Pay never has access to your
-            private keys
+            Your keys stay in your wallet
           </div>
         </div>
       </div>
@@ -483,13 +479,6 @@ function WalletOption({
 }) {
   const name = connector.name;
 
-  /*
-   * Wagmi's EIP-6963 discovered connectors
-   * expose the wallet icon.
-   *
-   * Cast keeps this compatible with the
-   * installed Wagmi Connector type.
-   */
   const connectorWithMeta =
     connector as Connector & {
       icon?: string;
@@ -499,10 +488,6 @@ function WalletOption({
   const icon =
     connectorWithMeta.icon;
 
-  /*
-   * Injected connectors are discovered from
-   * wallets installed in this browser.
-   */
   const installed =
     connector.type === "injected" ||
     connectorWithMeta.ready === true;
@@ -512,34 +497,42 @@ function WalletOption({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`group flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-white/[0.045] active:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`group flex w-full items-center gap-4 bg-white px-4 py-4 text-left transition hover:bg-blue-50/70 active:bg-blue-100/60 disabled:cursor-not-allowed disabled:opacity-50 ${
         showBorder
-          ? "border-b border-white/[0.1]"
+          ? "border-b border-slate-200"
           : ""
       }`}
     >
-      {/* Real wallet icon */}
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+
+      {/* Wallet icon */}
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm transition group-hover:border-blue-200">
         {icon ? (
           <img
             src={icon}
             alt=""
-            width={44}
-            height={44}
-            className="h-11 w-11 rounded-xl object-contain"
+            width={40}
+            height={40}
+            className="h-10 w-10 rounded-lg object-contain"
           />
         ) : (
-          <FallbackWalletIcon />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+            <Wallet
+              size={20}
+              strokeWidth={1.7}
+              className="text-blue-500"
+            />
+          </div>
         )}
       </div>
 
-      {/* Wallet name */}
+      {/* Wallet information */}
       <div className="min-w-0 flex-1">
-        <div className="text-[16px] font-semibold tracking-[-0.015em] text-white">
+
+        <div className="text-[14px] font-semibold text-slate-800">
           {name}
         </div>
 
-        <div className="mt-1 text-[12px] text-white/35">
+        <div className="mt-1 text-[11px] text-slate-400">
           {disabled
             ? "Confirm in your wallet…"
             : `Connect using ${name}`}
@@ -548,37 +541,25 @@ function WalletOption({
 
       {/* Installed */}
       {installed && (
-        <span className="shrink-0 rounded-md border border-white/[0.08] bg-white/[0.12] px-2.5 py-1 text-[11px] font-medium text-white/60">
+        <span className="shrink-0 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-600">
           Installed
         </span>
       )}
 
       {/* Arrow */}
-      <div className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center text-white/30 transition group-hover:text-white/65">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-300 transition group-hover:bg-blue-100 group-hover:text-blue-600">
         <ArrowRight
-          size={18}
-          strokeWidth={1.6}
+          size={17}
+          strokeWidth={1.7}
         />
       </div>
     </button>
   );
 }
 
-function FallbackWalletIcon() {
-  return (
-    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.05]">
-      <Wallet
-        size={21}
-        strokeWidth={1.7}
-        className="text-white/50"
-      />
-    </div>
-  );
-}
-
 function WalletAvatar() {
   return (
-    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 text-[9px] font-black text-white">
+    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-[9px] font-black text-white">
       A
     </div>
   );
@@ -598,20 +579,20 @@ function AccountMenu({
   onDisconnect: () => void;
 }) {
   return (
-    <div className="absolute right-0 top-[calc(100%+10px)] w-[300px] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0d1219] shadow-[0_30px_90px_-25px_rgba(0,0,0,.9)]">
+    <div className="absolute right-0 top-[calc(100%+10px)] w-[300px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.15)]">
 
-      {/* Account header */}
-      <div className="border-b border-white/[0.06] p-4">
+      <div className="border-b border-slate-100 p-4">
         <div className="flex items-center gap-3">
+
           <WalletAvatar />
 
           <div className="min-w-0">
-            <div className="text-[11px] font-semibold text-white/65">
+            <div className="text-[11px] font-semibold text-slate-700">
               Connected wallet
             </div>
 
-            <div className="mt-1 flex items-center gap-1.5 text-[9px] text-white/25">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <div className="mt-1 flex items-center gap-1.5 text-[9px] text-slate-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
 
               {address}
             </div>
@@ -619,7 +600,6 @@ function AccountMenu({
         </div>
       </div>
 
-      {/* Actions */}
       <div className="p-2">
 
         <AccountAction
@@ -644,7 +624,6 @@ function AccountMenu({
           onClick={onCopy}
         />
 
-        {/* Explorer link */}
         <a
           href={
             fullAddress
@@ -655,7 +634,7 @@ function AccountMenu({
           }
           target="_blank"
           rel="noreferrer"
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] font-medium text-white/45 transition hover:bg-white/[0.045] hover:text-white/70"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] font-medium text-slate-500 transition hover:bg-blue-50 hover:text-blue-600"
         >
           <ExternalLink
             size={15}
@@ -698,8 +677,8 @@ function AccountAction({
       onClick={onClick}
       className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] font-medium transition ${
         danger
-          ? "text-red-400/70 hover:bg-red-400/[0.06] hover:text-red-400"
-          : "text-white/45 hover:bg-white/[0.045] hover:text-white/70"
+          ? "text-red-500 hover:bg-red-50"
+          : "text-slate-500 hover:bg-blue-50 hover:text-blue-600"
       }`}
     >
       {icon}
@@ -721,8 +700,8 @@ function NavItem({
       type="button"
       className={`rounded-lg px-3.5 py-2 text-[11px] font-medium transition ${
         active
-          ? "bg-white/[0.06] text-white/80"
-          : "text-white/30 hover:bg-white/[0.035] hover:text-white/60"
+          ? "bg-blue-50 text-blue-700"
+          : "text-slate-400 hover:bg-slate-50 hover:text-slate-700"
       }`}
     >
       {children}

@@ -74,13 +74,9 @@ export function TopBar() {
     : "";
 
   /*
-   * REAL EIP-6963 WALLET DISCOVERY
-   *
-   * Wallet extensions announce their own:
-   * - name
-   * - icon
-   * - rdns
-   * - uuid
+   * EIP-6963 wallet discovery.
+   * Wallet extensions provide their own official
+   * name + icon through this event.
    */
   useEffect(() => {
     const discovered = new Map<
@@ -88,14 +84,18 @@ export function TopBar() {
       WalletInfo
     >();
 
-    const announce = (event: Event) => {
+    const handleAnnouncement = (
+      event: Event
+    ) => {
       const detail = (
         event as CustomEvent<{
           info: WalletInfo;
         }>
       ).detail;
 
-      if (!detail?.info?.uuid) return;
+      if (!detail?.info?.uuid) {
+        return;
+      }
 
       discovered.set(
         detail.info.uuid,
@@ -109,7 +109,7 @@ export function TopBar() {
 
     window.addEventListener(
       "eip6963:announceProvider",
-      announce
+      handleAnnouncement
     );
 
     window.dispatchEvent(
@@ -119,19 +119,56 @@ export function TopBar() {
     return () => {
       window.removeEventListener(
         "eip6963:announceProvider",
-        announce
+        handleAnnouncement
       );
     };
   }, []);
 
+  /*
+   * Close wallet modal after successful connection.
+   */
   useEffect(() => {
     if (connected) {
       setWalletModalOpen(false);
     }
   }, [connected]);
 
+  /*
+   * ESC closes modal.
+   */
+  useEffect(() => {
+    if (!walletModalOpen) {
+      return;
+    }
+
+    const handleEscape = (
+      event: KeyboardEvent
+    ) => {
+      if (event.key === "Escape") {
+        setWalletModalOpen(false);
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleEscape
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+    };
+  }, [walletModalOpen]);
+
+  /*
+   * Copy address.
+   */
   const copyAddress = async () => {
-    if (!address) return;
+    if (!address) {
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(
@@ -151,10 +188,9 @@ export function TopBar() {
   };
 
   /*
-   * Use the existing injected connector.
+   * Keep the working injected connector.
    *
-   * We deliberately do NOT force chainId here.
-   * This is the connection flow that you confirmed works.
+   * We intentionally don't force a chain here.
    */
   const handleConnect = () => {
     const injectedConnector =
@@ -179,7 +215,10 @@ export function TopBar() {
 
   return (
     <>
-      {/* TOP BAR */}
+      {/* ================================================= */}
+      {/* TOP BAR                                           */}
+      {/* ================================================= */}
+
       <header className="sticky top-0 z-50 h-[68px] border-b border-[#E7E7EA] bg-white">
         <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-10">
 
@@ -202,7 +241,7 @@ export function TopBar() {
             </div>
           </div>
 
-          {/* RIGHT */}
+          {/* RIGHT SIDE */}
           <div className="flex items-center gap-2">
 
             {/* NETWORK */}
@@ -256,7 +295,7 @@ export function TopBar() {
               </button>
             ) : connected ? (
 
-              /* CONNECTED */
+              /* CONNECTED WALLET */
               <div className="relative">
                 <button
                   type="button"
@@ -288,6 +327,7 @@ export function TopBar() {
                   />
                 </button>
 
+                {/* ACCOUNT MENU */}
                 {accountMenuOpen && (
                   <div className="absolute right-0 top-[50px] w-[270px] overflow-hidden rounded-[18px] border border-[#E5E5E8] bg-white shadow-[0_18px_50px_-25px_rgba(0,0,0,.25)]">
 
@@ -303,12 +343,13 @@ export function TopBar() {
 
                     <div className="p-2">
 
+                      {/* COPY */}
                       <button
                         type="button"
                         onClick={
                           copyAddress
                         }
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] text-[#55565D] hover:bg-[#F7F7F8]"
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] text-[#55565D] transition hover:bg-[#F7F7F8]"
                       >
                         {copied ? (
                           <Check
@@ -325,6 +366,7 @@ export function TopBar() {
                           : "Copy address"}
                       </button>
 
+                      {/* EXPLORER */}
                       {address && (
                         <a
                           href={explorerAddressUrl(
@@ -332,7 +374,7 @@ export function TopBar() {
                           )}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-[#55565D] hover:bg-[#F7F7F8]"
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-[#55565D] transition hover:bg-[#F7F7F8]"
                         >
                           <ExternalLink
                             size={15}
@@ -342,12 +384,13 @@ export function TopBar() {
                         </a>
                       )}
 
+                      {/* DISCONNECT */}
                       <button
                         type="button"
                         onClick={
                           handleDisconnect
                         }
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-red-500 hover:bg-red-50"
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-red-500 transition hover:bg-red-50"
                       >
                         <LogOut
                           size={15}
@@ -362,7 +405,7 @@ export function TopBar() {
 
             ) : (
 
-              /* CONNECT */
+              /* CONNECT WALLET */
               <button
                 type="button"
                 onClick={() =>
@@ -384,10 +427,14 @@ export function TopBar() {
         </div>
       </header>
 
-      {/* WALLET MODAL */}
+      {/* ================================================= */}
+      {/* COMPACT WALLET MODAL                              */}
+      {/* ================================================= */}
+
       {walletModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 px-4 backdrop-blur-[3px]">
 
+          {/* BACKDROP */}
           <button
             type="button"
             aria-label="Close wallet modal"
@@ -396,49 +443,54 @@ export function TopBar() {
                 false
               )
             }
-            className="absolute inset-0"
+            className="absolute inset-0 cursor-default"
           />
 
-          <div className="relative z-10 w-full max-w-[430px] overflow-hidden rounded-[24px] border border-[#E4E4E7] bg-white shadow-[0_30px_80px_-30px_rgba(0,0,0,.28)]">
+          {/* MODAL */}
+          <div className="relative z-10 flex w-full max-w-[400px] max-h-[78vh] flex-col overflow-hidden rounded-[22px] border border-[#E4E4E7] bg-white shadow-[0_30px_80px_-30px_rgba(0,0,0,.28)]">
 
             {/* CLOSE */}
             <button
               type="button"
+              aria-label="Close"
               onClick={() =>
                 setWalletModalOpen(
                   false
                 )
               }
-              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[#E7E7EA] bg-white text-[#777880] hover:bg-[#F5F5F6]"
+              className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-[#E7E7EA] bg-white text-[#777880] transition hover:bg-[#F5F5F6] hover:text-[#111111]"
             >
-              <X size={17} />
+              <X
+                size={15}
+                strokeWidth={1.8}
+              />
             </button>
 
             {/* HEADER */}
-            <div className="px-6 pb-5 pt-8 text-center">
+            <div className="shrink-0 px-5 pb-4 pt-6 text-center">
 
-              <div className="mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-[20px] bg-[#F5F5F6]">
-                <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[14px] bg-[#111111]">
-                  <span className="text-[18px] font-bold text-white">
+              <div className="mx-auto flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#F5F5F6]">
+                <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-[#111111]">
+                  <span className="text-[14px] font-bold text-white">
                     A
                   </span>
                 </div>
               </div>
 
-              <h2 className="mt-5 text-[22px] font-semibold tracking-[-0.04em]">
+              <h2 className="mt-3 text-[18px] font-semibold tracking-[-0.035em] text-[#111111]">
                 Connect your wallet
               </h2>
 
-              <p className="mx-auto mt-2 max-w-[300px] text-[11px] leading-5 text-[#85868E]">
+              <p className="mx-auto mt-1 max-w-[270px] text-[10px] leading-4 text-[#85868E]">
                 Choose a wallet to connect
                 to Arc Pay.
               </p>
             </div>
 
-            {/* WALLETS */}
-            <div className="px-5 pb-5">
+            {/* SCROLLABLE WALLET LIST */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
 
-              <div className="overflow-hidden rounded-[18px] border border-[#E3E3E6]">
+              <div className="overflow-hidden rounded-[16px] border border-[#E3E3E6] bg-white">
 
                 {wallets.map(
                   (wallet) => (
@@ -453,118 +505,122 @@ export function TopBar() {
                       onClick={
                         handleConnect
                       }
-                      className="group flex w-full items-center gap-4 border-b border-[#EEEEF1] px-4 py-3.5 text-left transition last:border-b-0 hover:bg-[#F8F8F9] disabled:opacity-50"
+                      className="group flex h-[62px] w-full items-center gap-3 border-b border-[#EEEEF1] px-3.5 text-left transition last:border-b-0 hover:bg-[#F8F8F9] disabled:cursor-not-allowed disabled:opacity-50"
                     >
 
-                      {/* REAL OFFICIAL ICON */}
-                      <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[12px] bg-[#F5F5F6]">
+                      {/* REAL WALLET LOGO */}
+                      <div className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[10px] bg-[#F5F5F6]">
                         <img
                           src={
                             wallet.icon
                           }
-                          alt=""
-                          className="h-[29px] w-[29px] rounded-[8px] object-contain"
+                          alt={`${wallet.name} logo`}
+                          className="h-[27px] w-[27px] rounded-[7px] object-contain"
                         />
                       </div>
 
+                      {/* WALLET NAME */}
                       <div className="min-w-0 flex-1">
-                        <p className="text-[12px] font-semibold text-[#222327]">
+                        <p className="truncate text-[11px] font-semibold text-[#222327]">
                           {
                             wallet.name
                           }
                         </p>
 
-                        <p className="mt-1 text-[9px] text-[#999AA2]">
+                        <p className="mt-0.5 text-[9px] text-[#999AA2]">
                           {isPending
                             ? "Confirm in your wallet..."
                             : "Connect wallet"}
                         </p>
                       </div>
 
+                      {/* ARROW */}
                       <ChevronDown
-                        size={15}
-                        className="-rotate-90 text-[#A0A1A8]"
+                        size={14}
+                        strokeWidth={1.7}
+                        className="-rotate-90 shrink-0 text-[#A0A1A8] transition-transform group-hover:translate-x-0.5"
                       />
                     </button>
                   )
                 )}
 
+                {/* EMPTY */}
                 {wallets.length ===
                   0 && (
                     <div className="px-5 py-8 text-center">
-                      <Wallet
-                        size={22}
-                        className="mx-auto text-[#777880]"
-                      />
 
-                      <p className="mt-3 text-[11px] font-semibold">
+                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F5F6]">
+                        <Wallet
+                          size={18}
+                          className="text-[#777880]"
+                        />
+                      </div>
+
+                      <p className="mt-2 text-[11px] font-semibold text-[#55565D]">
                         No browser wallets
                         detected
                       </p>
 
                       <p className="mt-1 text-[9px] leading-4 text-[#999AA2]">
-                        Make sure your wallet
-                        extension is installed
-                        and enabled.
+                        Install a compatible
+                        wallet and refresh.
                       </p>
                     </div>
                   )}
               </div>
 
               {/* NETWORK */}
-              <div className="mt-3 flex items-center gap-3 rounded-[15px] bg-[#F7F7F8] px-4 py-3">
+              <div className="mt-2.5 flex items-center gap-2.5 rounded-[13px] bg-[#F7F7F8] px-3 py-2.5">
 
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white">
                   <span className="h-2 w-2 rounded-full bg-[#31A66A]" />
                 </span>
 
-                <div className="flex-1">
-                  <p className="text-[10px] font-semibold text-[#55565D]">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] font-semibold text-[#55565D]">
                     Arc Testnet
                   </p>
 
-                  <p className="mt-0.5 text-[9px] text-[#999AA2]">
-                    USDC payments use Arc
-                    Testnet.
+                  <p className="mt-0.5 text-[8px] text-[#999AA2]">
+                    USDC payments on Arc.
                   </p>
                 </div>
 
-                <span className="text-[9px] font-medium text-[#31A66A]">
+                <span className="text-[8px] font-medium text-[#31A66A]">
                   Testnet
                 </span>
               </div>
 
               {/* ERROR */}
               {error && (
-                <div className="mt-3 rounded-[13px] border border-[#F0D4D4] bg-[#FFF8F8] px-4 py-3">
+                <div className="mt-2.5 rounded-[12px] border border-[#F0D4D4] bg-[#FFF8F8] px-3 py-2.5">
 
-                  <p className="text-[10px] font-semibold text-[#B85D5D]">
+                  <p className="text-[9px] font-semibold text-[#B85D5D]">
                     Connection failed
                   </p>
 
-                  <p className="mt-1 text-[9px] leading-4 text-[#B76A6A]">
+                  <p className="mt-1 text-[8px] leading-4 text-[#B76A6A]">
                     {error.message}
                   </p>
-
                 </div>
               )}
             </div>
 
             {/* FOOTER */}
-            <div className="border-t border-[#EEEEF1] px-5 py-4 text-center">
-              <div className="flex items-center justify-center gap-2">
+            <div className="shrink-0 border-t border-[#EEEEF1] px-4 py-3 text-center">
+
+              <div className="flex items-center justify-center gap-1.5">
                 <ShieldCheck
-                  size={13}
+                  size={12}
                   className="text-[#8C8D95]"
                 />
 
-                <p className="text-[9px] text-[#8C8D95]">
-                  Non-custodial. Your keys
-                  stay with you.
+                <p className="text-[8px] text-[#8C8D95]">
+                  Non-custodial · Your keys stay
+                  with you
                 </p>
               </div>
             </div>
-
           </div>
         </div>
       )}

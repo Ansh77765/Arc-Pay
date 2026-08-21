@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -44,6 +44,8 @@ type CreatePaymentFormProps = {
   onClose: () => void;
 };
 
+const PAYMENT_DURATION = 10 * 60 * 1000;
+
 export function CreatePaymentForm({
   open,
   onClose,
@@ -79,6 +81,21 @@ export function CreatePaymentForm({
   const [copied, setCopied] =
     useState(false);
 
+  /*
+   * IMPORTANT:
+   * This is the exact timestamp used when
+   * the invoice was created.
+   *
+   * It is also stored inside the signed
+   * invoice, so the payment page uses
+   * the same 10-minute lifetime.
+   */
+  const [generatedAt, setGeneratedAt] =
+    useState<number | null>(null);
+
+  const [timeLeft, setTimeLeft] =
+    useState(PAYMENT_DURATION);
+
   const onArcTestnet =
     isConnected &&
     chainId === arcTestnet.id;
@@ -87,6 +104,61 @@ export function CreatePaymentForm({
     onArcTestnet &&
     isValidAmount(amount) &&
     description.trim().length > 0;
+
+  /*
+   * ============================================================
+   * TIMER
+   * ============================================================
+   *
+   * Starts when the payment link is successfully created.
+   *
+   * Because generatedAt comes from the exact createdAt
+   * written into the Invoice, this timer matches the
+   * payment page timer.
+   */
+
+  useEffect(() => {
+    if (
+      !generatedAt ||
+      !generatedUrl
+    ) {
+      return;
+    }
+
+    const updateTimer = () => {
+      const remaining =
+        Math.max(
+          0,
+          generatedAt +
+            PAYMENT_DURATION -
+            Date.now()
+        );
+
+      setTimeLeft(
+        remaining
+      );
+    };
+
+    updateTimer();
+
+    const interval =
+      window.setInterval(
+        updateTimer,
+        1000
+      );
+
+    return () => {
+      window.clearInterval(
+        interval
+      );
+    };
+  }, [
+    generatedAt,
+    generatedUrl,
+  ]);
+
+  const paymentExpired =
+    timeLeft <= 0;
 
   if (!open) {
     return null;
@@ -138,6 +210,14 @@ export function CreatePaymentForm({
       const id =
         generateInvoiceId();
 
+      /*
+       * Create the timestamp ONCE.
+       *
+       * Do not call Date.now() again for the timer.
+       */
+      const createdAt =
+        Date.now();
+
       const invoice: Invoice = {
         version: 2,
         id,
@@ -147,8 +227,9 @@ export function CreatePaymentForm({
           description
             .trim()
             .slice(0, 140),
-        createdAt: Date.now(),
-        chainId: arcTestnet.id,
+        createdAt,
+        chainId:
+          arcTestnet.id,
         fromBlock:
           Number(fromBlock),
         nonce:
@@ -158,8 +239,6 @@ export function CreatePaymentForm({
 
       /*
        * Sign the payment request.
-       * The signature stays exactly the same
-       * as your existing payment-link flow.
        */
       const signature =
         await signTypedDataAsync({
@@ -167,11 +246,14 @@ export function CreatePaymentForm({
             invoiceDomain(
               invoice.chainId
             ),
-          types: invoiceTypes,
+          types:
+            invoiceTypes,
           primaryType:
             "PaymentRequest",
           message:
-            invoiceMessage(invoice),
+            invoiceMessage(
+              invoice
+            ),
         });
 
       const signedInvoice = {
@@ -187,7 +269,21 @@ export function CreatePaymentForm({
       const url =
         `${window.location.origin}/pay/${token}`;
 
-      setGeneratedUrl(url);
+      /*
+       * Save the exact invoice creation
+       * timestamp for the popup timer.
+       */
+      setGeneratedAt(
+        createdAt
+      );
+
+      setTimeLeft(
+        PAYMENT_DURATION
+      );
+
+      setGeneratedUrl(
+        url
+      );
     } catch (err) {
       setFormError(
         err instanceof Error
@@ -251,6 +347,10 @@ export function CreatePaymentForm({
     setFormError(null);
     setGeneratedUrl("");
     setCopied(false);
+    setGeneratedAt(null);
+    setTimeLeft(
+      PAYMENT_DURATION
+    );
   }
 
   function handleClose() {
@@ -266,6 +366,7 @@ export function CreatePaymentForm({
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
 
       {/* BACKDROP */}
+
       <button
         type="button"
         aria-label="Close"
@@ -274,9 +375,11 @@ export function CreatePaymentForm({
       />
 
       {/* MODAL */}
+
       <div className="relative z-10 w-full max-w-[460px] overflow-hidden rounded-[24px] border border-[#E2E2E5] bg-white shadow-[0_30px_90px_-35px_rgba(0,0,0,.28)]">
 
         {/* CLOSE */}
+
         <button
           type="button"
           aria-label="Close"
@@ -349,26 +452,56 @@ export function CreatePaymentForm({
 
             <div className="space-y-4">
 
+              {/* SUCCESS + TIMER */}
+
               <div className="rounded-[18px] border border-[#DDEEE4] bg-[#F6FBF8] px-5 py-5 text-center">
 
-                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
-                  <Check
-                    size={20}
-                    strokeWidth={2}
+                {/* CIRCULAR TIMER */}
+
+                <div className="flex justify-center">
+
+                  <PaymentCountdown
+                    timeLeft={
+                      timeLeft
+                    }
+                    expired={
+                      paymentExpired
+                    }
                   />
+
+                </div>
+
+                <div className="mx-auto mt-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
+
+                  {paymentExpired ? (
+                    <CircleAlert
+                      size={20}
+                      strokeWidth={1.8}
+                    />
+                  ) : (
+                    <Check
+                      size={20}
+                      strokeWidth={2}
+                    />
+                  )}
+
                 </div>
 
                 <h3 className="mt-3 text-[14px] font-semibold text-[#222327]">
-                  Payment link created
+                  {paymentExpired
+                    ? "Payment link expired"
+                    : "Payment link created"}
                 </h3>
 
                 <p className="mt-1 text-[10px] leading-5 text-[#85868E]">
-                  Share this link with the
-                  person who needs to pay you.
+                  {paymentExpired
+                    ? "This payment request was valid for 10 minutes."
+                    : "Share this link with the person who needs to pay you."}
                 </p>
               </div>
 
               {/* LINK */}
+
               <div className="rounded-[15px] border border-[#E5E5E8] bg-[#F7F7F8] p-2">
 
                 <div className="flex items-center gap-2">
@@ -405,6 +538,7 @@ export function CreatePaymentForm({
               </div>
 
               {/* SHARE */}
+
               <button
                 type="button"
                 onClick={
@@ -420,6 +554,7 @@ export function CreatePaymentForm({
               </button>
 
               {/* DONE */}
+
               <button
                 type="button"
                 onClick={
@@ -446,6 +581,7 @@ export function CreatePaymentForm({
             >
 
               {/* AMOUNT */}
+
               <div>
 
                 <div className="mb-2 flex items-center justify-between">
@@ -485,6 +621,7 @@ export function CreatePaymentForm({
               </div>
 
               {/* DESCRIPTION */}
+
               <div>
 
                 <div className="mb-2 flex items-center justify-between">
@@ -519,6 +656,7 @@ export function CreatePaymentForm({
               </div>
 
               {/* RECIPIENT */}
+
               <div className="rounded-[15px] border border-[#E7E7EA] bg-[#F7F7F8] p-3.5">
 
                 <div className="flex items-center gap-3">
@@ -555,6 +693,7 @@ export function CreatePaymentForm({
               </div>
 
               {/* ERROR */}
+
               {formError && (
                 <div className="flex items-start gap-3 rounded-[14px] border border-[#F2D5D5] bg-[#FFF8F8] px-4 py-3.5">
 
@@ -577,6 +716,7 @@ export function CreatePaymentForm({
               )}
 
               {/* CREATE */}
+
               <button
                 type="submit"
                 disabled={
@@ -609,6 +749,7 @@ export function CreatePaymentForm({
               </button>
 
               {/* SECURITY */}
+
               <div className="flex items-start justify-center gap-2 px-3">
 
                 <CheckCircle2
@@ -626,6 +767,140 @@ export function CreatePaymentForm({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   CIRCULAR PAYMENT COUNTDOWN
+   ================================================================ */
+
+function PaymentCountdown({
+  timeLeft,
+  expired,
+}: {
+  timeLeft: number;
+  expired: boolean;
+}) {
+  const totalSeconds =
+    Math.max(
+      0,
+      Math.ceil(
+        timeLeft / 1000
+      )
+    );
+
+  const minutes =
+    Math.floor(
+      totalSeconds / 60
+    );
+
+  const seconds =
+    totalSeconds % 60;
+
+  const progress =
+    Math.max(
+      0,
+      Math.min(
+        1,
+        timeLeft /
+          PAYMENT_DURATION
+      )
+    );
+
+  const radius = 25;
+
+  const circumference =
+    2 *
+    Math.PI *
+    radius;
+
+  const dashOffset =
+    circumference *
+    (1 - progress);
+
+  const formattedTime =
+    `${String(
+      minutes
+    ).padStart(2, "0")}:${String(
+      seconds
+    ).padStart(2, "0")}`;
+
+  return (
+    <div className="flex flex-col items-center">
+
+      <div className="relative h-[64px] w-[64px]">
+
+        <svg
+          viewBox="0 0 64 64"
+          className="h-full w-full -rotate-90"
+          aria-label={
+            expired
+              ? "Payment link expired"
+              : `Payment link expires in ${formattedTime}`
+          }
+        >
+          {/* BACKGROUND RING */}
+
+          <circle
+            cx="32"
+            cy="32"
+            r={radius}
+            fill="none"
+            stroke="#DDEEE4"
+            strokeWidth="3"
+          />
+
+          {/* PROGRESS RING */}
+
+          <circle
+            cx="32"
+            cy="32"
+            r={radius}
+            fill="none"
+            stroke={
+              expired
+                ? "#D65A5A"
+                : "#31A66A"
+            }
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray={
+              circumference
+            }
+            strokeDashoffset={
+              dashOffset
+            }
+            className="transition-[stroke-dashoffset] duration-500"
+          />
+        </svg>
+
+        {/* TIME */}
+
+        <div
+          className={`absolute inset-0 flex items-center justify-center font-mono text-[10px] font-bold tabular-nums ${
+            expired
+              ? "text-[#D65A5A]"
+              : "text-[#33343A]"
+          }`}
+        >
+          {expired
+            ? "00:00"
+            : formattedTime}
+        </div>
+      </div>
+
+      <p
+        className={`mt-1.5 text-[8px] font-semibold uppercase tracking-[0.1em] ${
+          expired
+            ? "text-[#D65A5A]"
+            : "text-[#85868E]"
+        }`}
+      >
+        {expired
+          ? "Expired"
+          : "Expires in"}
+      </p>
     </div>
   );
 }

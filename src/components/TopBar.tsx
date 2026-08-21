@@ -17,6 +17,7 @@ import {
   ExternalLink,
   LogOut,
   Check,
+  Network,
   ShieldCheck,
   Wallet,
   ArrowRight,
@@ -330,11 +331,13 @@ function WalletModal({
   ) => void;
 }) {
   /*
-   * Wagmi's injected connector discovers
-   * multiple EIP-6963 wallets.
+   * Keep every discovered wallet.
    *
-   * Remove duplicates without replacing the
-   * connector's actual name.
+   * EIP-6963 lets Wagmi discover multiple
+   * injected wallets such as MetaMask, Rabby,
+   * OKX, Brave, Phantom, etc.
+   *
+   * We only remove exact duplicate connector IDs.
    */
   const uniqueConnectors =
     connectors.filter(
@@ -360,7 +363,7 @@ function WalletModal({
         className="absolute inset-0 cursor-default"
       />
 
-      {/* Modal */}
+      {/* Main modal */}
       <div className="relative z-10 flex max-h-[calc(100vh-32px)] w-full max-w-[560px] flex-col overflow-hidden rounded-[24px] border border-white/[0.12] bg-[#111111] shadow-[0_35px_100px_rgba(0,0,0,0.8)]">
 
         {/* Close button */}
@@ -399,10 +402,11 @@ function WalletModal({
         {/* Wallet list */}
         <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-5">
           <div className="overflow-hidden rounded-[18px] border border-white/[0.13] bg-[#151515]">
+
             {uniqueConnectors.map(
               (connector, index) => (
                 <WalletOption
-                  key={connector.uid}
+                  key={`${connector.id}-${index}`}
                   connector={connector}
                   disabled={isPending}
                   showBorder={
@@ -437,6 +441,7 @@ function WalletModal({
             )}
           </div>
 
+          {/* Connection error */}
           {error && (
             <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3 text-xs leading-5 text-red-300">
               {error.message.includes(
@@ -479,26 +484,28 @@ function WalletOption({
   const name = connector.name;
 
   /*
-   * IMPORTANT:
-   * Use the actual icon supplied by the
-   * EIP-6963 connector.
+   * Wagmi's EIP-6963 discovered connectors
+   * expose the wallet icon.
+   *
+   * Cast keeps this compatible with the
+   * installed Wagmi Connector type.
    */
-  const icon = (
+  const connectorWithMeta =
     connector as Connector & {
       icon?: string;
-    }
-  ).icon;
+      ready?: boolean;
+    };
+
+  const icon =
+    connectorWithMeta.icon;
 
   /*
-   * An injected connector means the wallet
-   * was discovered in this browser.
-   *
-   * For explicitly configured connectors,
-   * use `ready` when available.
+   * Injected connectors are discovered from
+   * wallets installed in this browser.
    */
   const installed =
     connector.type === "injected" ||
-    connector.ready === true;
+    connectorWithMeta.ready === true;
 
   return (
     <button
@@ -522,30 +529,24 @@ function WalletOption({
             className="h-11 w-11 rounded-xl object-contain"
           />
         ) : (
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.05]">
-            <Wallet
-              size={21}
-              strokeWidth={1.7}
-              className="text-white/50"
-            />
-          </div>
+          <FallbackWalletIcon />
         )}
       </div>
 
-      {/* Name + description */}
+      {/* Wallet name */}
       <div className="min-w-0 flex-1">
         <div className="text-[16px] font-semibold tracking-[-0.015em] text-white">
           {name}
         </div>
 
         <div className="mt-1 text-[12px] text-white/35">
-          {isPending
+          {disabled
             ? "Confirm in your wallet…"
             : `Connect using ${name}`}
         </div>
       </div>
 
-      {/* Installed badge */}
+      {/* Installed */}
       {installed && (
         <span className="shrink-0 rounded-md border border-white/[0.08] bg-white/[0.12] px-2.5 py-1 text-[11px] font-medium text-white/60">
           Installed
@@ -560,6 +561,18 @@ function WalletOption({
         />
       </div>
     </button>
+  );
+}
+
+function FallbackWalletIcon() {
+  return (
+    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.05]">
+      <Wallet
+        size={21}
+        strokeWidth={1.7}
+        className="text-white/50"
+      />
+    </div>
   );
 }
 
@@ -586,6 +599,8 @@ function AccountMenu({
 }) {
   return (
     <div className="absolute right-0 top-[calc(100%+10px)] w-[300px] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0d1219] shadow-[0_30px_90px_-25px_rgba(0,0,0,.9)]">
+
+      {/* Account header */}
       <div className="border-b border-white/[0.06] p-4">
         <div className="flex items-center gap-3">
           <WalletAvatar />
@@ -604,7 +619,9 @@ function AccountMenu({
         </div>
       </div>
 
+      {/* Actions */}
       <div className="p-2">
+
         <AccountAction
           icon={
             copied ? (
@@ -627,6 +644,7 @@ function AccountMenu({
           onClick={onCopy}
         />
 
+        {/* Explorer link */}
         <a
           href={
             fullAddress
@@ -685,6 +703,7 @@ function AccountAction({
       }`}
     >
       {icon}
+
       {label}
     </button>
   );

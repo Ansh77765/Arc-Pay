@@ -80,8 +80,9 @@ export function PaymentView({
     isPending: writing,
   } = useWriteContract();
 
-  const { signTypedDataAsync } =
-    useSignTypedData();
+  const {
+    signTypedDataAsync,
+  } = useSignTypedData();
 
   const [status, setStatus] =
     useState<
@@ -112,17 +113,15 @@ export function PaymentView({
   const [shareUrl, setShareUrl] =
     useState("");
 
-  /* =============================================================
-     TIMER
-     ============================================================= */
+  /* ============================================================
+     10 MINUTE PAYMENT TIMER
 
-  const createdAtMs =
-    invoice.createdAt < 10_000_000_000
-      ? invoice.createdAt * 1000
-      : invoice.createdAt;
+     invoice.createdAt is already Date.now() milliseconds.
+     ============================================================ */
 
   const expiresAt =
-    createdAtMs + PAYMENT_DURATION;
+    invoice.createdAt +
+    PAYMENT_DURATION;
 
   const [timeLeft, setTimeLeft] =
     useState(() =>
@@ -133,7 +132,7 @@ export function PaymentView({
     );
 
   useEffect(() => {
-    const updateTimer = () => {
+    const tick = () => {
       setTimeLeft(
         Math.max(
           0,
@@ -142,25 +141,27 @@ export function PaymentView({
       );
     };
 
-    updateTimer();
+    tick();
 
-    const timer =
+    const interval =
       window.setInterval(
-        updateTimer,
+        tick,
         1000
       );
 
     return () => {
-      window.clearInterval(timer);
+      window.clearInterval(
+        interval
+      );
     };
   }, [expiresAt]);
 
   const requestExpired =
     timeLeft <= 0;
 
-  /* =============================================================
+  /* ============================================================
      NETWORK
-     ============================================================= */
+     ============================================================ */
 
   const onArcTestnet =
     isConnected &&
@@ -171,9 +172,9 @@ export function PaymentView({
     address?.toLowerCase() ===
       invoice.recipient.toLowerCase();
 
-  /* =============================================================
-     BALANCE
-     ============================================================= */
+  /* ============================================================
+     USDC BALANCE
+     ============================================================ */
 
   const {
     data: balance,
@@ -193,9 +194,9 @@ export function PaymentView({
     },
   });
 
-  /* =============================================================
-     ALLOWANCE
-     ============================================================= */
+  /* ============================================================
+     PERMIT2 ALLOWANCE
+     ============================================================ */
 
   const {
     data: allowance,
@@ -216,9 +217,9 @@ export function PaymentView({
     },
   });
 
-  /* =============================================================
+  /* ============================================================
      PUBLIC CLIENT
-     ============================================================= */
+     ============================================================ */
 
   const [publicClient, setPublicClient] =
     useState<PublicClient | null>(null);
@@ -258,9 +259,9 @@ export function PaymentView({
     };
   }, []);
 
-  /* =============================================================
+  /* ============================================================
      AMOUNT
-     ============================================================= */
+     ============================================================ */
 
   const requiredAmount =
     parseUnits(
@@ -278,9 +279,9 @@ export function PaymentView({
     allowance !== undefined &&
     allowance < requiredAmount;
 
-  /* =============================================================
+  /* ============================================================
      SHARE URL
-     ============================================================= */
+     ============================================================ */
 
   useEffect(() => {
     if (
@@ -293,9 +294,9 @@ export function PaymentView({
     }
   }, []);
 
-  /* =============================================================
+  /* ============================================================
      VERIFY INVOICE
-     ============================================================= */
+     ============================================================ */
 
   useEffect(() => {
     let active = true;
@@ -319,9 +320,9 @@ export function PaymentView({
     };
   }, [invoice]);
 
-  /* =============================================================
-     PAYMENT SCANNER
-     ============================================================= */
+  /* ============================================================
+     FIND EXISTING PAYMENT
+     ============================================================ */
 
   const scanForPayment =
     useCallback(async () => {
@@ -370,16 +371,18 @@ export function PaymentView({
       );
 
     return () => {
-      window.clearInterval(interval);
+      window.clearInterval(
+        interval
+      );
     };
   }, [
     scanForPayment,
     invoiceValid,
   ]);
 
-  /* =============================================================
+  /* ============================================================
      APPROVAL
-     ============================================================= */
+     ============================================================ */
 
   async function handleApproval(): Promise<boolean> {
     setError(null);
@@ -448,9 +451,9 @@ export function PaymentView({
     }
   }
 
-  /* =============================================================
+  /* ============================================================
      PAYMENT
-     ============================================================= */
+     ============================================================ */
 
   async function handlePay() {
     setError(null);
@@ -519,6 +522,11 @@ export function PaymentView({
           return;
         }
       }
+
+      /*
+       * Permit2 deadline cannot be longer
+       * than the payment request lifetime.
+       */
 
       const remainingSeconds =
         Math.max(
@@ -675,9 +683,9 @@ export function PaymentView({
     }
   }
 
-  /* =============================================================
+  /* ============================================================
      RENDER
-     ============================================================= */
+     ============================================================ */
 
   return (
     <div className="min-h-screen bg-white text-[#111111]">
@@ -716,6 +724,8 @@ export function PaymentView({
 
       <main className="mx-auto max-w-[720px] px-5 pb-20 pt-8 sm:px-8 sm:pt-12">
 
+        {/* TOP BAR */}
+
         <div className="mb-5 flex items-center justify-between gap-3">
 
           <Link
@@ -752,7 +762,7 @@ export function PaymentView({
           </span>
         </div>
 
-        {/* PAYMENT CARD */}
+        {/* CARD */}
 
         <section className="overflow-hidden rounded-[24px] border border-[#E7E7EA] bg-white shadow-[0_20px_60px_-35px_rgba(0,0,0,.18)]">
 
@@ -765,6 +775,7 @@ export function PaymentView({
               <div className="min-w-0">
 
                 <div className="flex items-center gap-2">
+
                   <span className="h-2 w-2 rounded-full bg-[#5B72D8]" />
 
                   <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#85868E]">
@@ -787,9 +798,15 @@ export function PaymentView({
                 </p>
               </div>
 
+              {/* TIMER */}
+
               <PaymentCountdown
-                timeLeft={timeLeft}
-                expired={requestExpired}
+                timeLeft={
+                  timeLeft
+                }
+                expired={
+                  requestExpired
+                }
               />
             </div>
           </div>
@@ -804,6 +821,7 @@ export function PaymentView({
                 label="Recipient"
                 value={
                   <div className="flex items-center gap-2">
+
                     <a
                       href={explorerAddressUrl(
                         invoice.recipient
@@ -869,7 +887,7 @@ export function PaymentView({
 
           <div className="border-t border-[#EEEEF1]" />
 
-          {/* ACTION */}
+          {/* ACTION AREA */}
 
           <div className="p-6 sm:p-8">
 
@@ -877,6 +895,7 @@ export function PaymentView({
 
             {status === "paid" &&
             payment ? (
+
               <div className="rounded-[18px] border border-[#DCEDE3] bg-[#F6FBF8] p-7 text-center">
 
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
@@ -1004,7 +1023,9 @@ export function PaymentView({
                         arcTestnet.id,
                     })
                   }
-                  disabled={switching}
+                  disabled={
+                    switching
+                  }
                   className="h-12 w-full rounded-[13px] bg-[#111111] text-[11px] font-semibold text-white transition hover:bg-[#292929] disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
                 >
                   {switching
@@ -1185,9 +1206,9 @@ export function PaymentView({
   );
 }
 
-/* ===============================================================
+/* ============================================================
    DETAIL ROW
-   =============================================================== */
+   ============================================================ */
 
 function DetailRow({
   label,
@@ -1209,9 +1230,9 @@ function DetailRow({
   );
 }
 
-/* ===============================================================
+/* ============================================================
    COUNTDOWN
-   =============================================================== */
+   ============================================================ */
 
 function PaymentCountdown({
   timeLeft,
@@ -1221,8 +1242,11 @@ function PaymentCountdown({
   expired: boolean;
 }) {
   const totalSeconds =
-    Math.ceil(
-      timeLeft / 1000
+    Math.max(
+      0,
+      Math.ceil(
+        timeLeft / 1000
+      )
     );
 
   const minutes =
@@ -1255,13 +1279,11 @@ function PaymentCountdown({
     (1 - progress);
 
   const timeText =
-    `${String(minutes).padStart(
-      2,
-      "0"
-    )}:${String(seconds).padStart(
-      2,
-      "0"
-    )}`;
+    `${String(
+      minutes
+    ).padStart(2, "0")}:${String(
+      seconds
+    ).padStart(2, "0")}`;
 
   return (
     <div

@@ -9,6 +9,7 @@ import {
   useReadContract,
   useSwitchChain,
 } from "wagmi";
+import { injected } from "wagmi/connectors";
 import { formatUnits } from "viem";
 
 import { arcTestnet } from "@/lib/chain";
@@ -20,31 +21,10 @@ import {
 } from "@/lib/config";
 import { shortAddress, formatUsdc } from "@/lib/format";
 
-function WalletIcon({
-  name,
-  connectorId,
-}: {
-  name: string;
-  connectorId?: string;
-}) {
-  const value = `${name} ${connectorId ?? ""}`.toLowerCase();
-
-  if (value.includes("metamask")) return <span className="text-lg">🦊</span>;
-  if (value.includes("rabby")) return <span className="font-bold">R</span>;
-  if (value.includes("coinbase")) return <span className="font-bold">C</span>;
-
-  return (
-    <span className="font-bold">
-      {name ? name.slice(0, 1).toUpperCase() : "W"}
-    </span>
-  );
-}
-
 export function WalletWidget() {
   const { address, isConnected, chainId } = useAccount();
 
   const {
-    connectors,
     connect,
     isPending,
     error: connectError,
@@ -64,26 +44,28 @@ export function WalletWidget() {
   const wrongNetwork =
     isConnected && chainId !== arcTestnet.id;
 
-  const { data: balance, isLoading: balanceLoading } =
-    useReadContract({
-      address: USDC_ADDRESS,
-      abi: erc20Abi,
-      functionName: "balanceOf",
-      args: address ? [address] : undefined,
-      chainId: arcTestnet.id,
-      query: {
-        enabled: Boolean(address) && !wrongNetwork,
-        refetchInterval: 15_000,
-      },
-    });
+  const {
+    data: balance,
+    isLoading: balanceLoading,
+  } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    chainId: arcTestnet.id,
+    query: {
+      enabled: Boolean(address) && !wrongNetwork,
+      refetchInterval: 15_000,
+    },
+  });
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
-      const target = event.target as Node;
-
       if (
         menuRef.current &&
-        !menuRef.current.contains(target)
+        !menuRef.current.contains(
+          event.target as Node
+        )
       ) {
         setMenuOpen(false);
       }
@@ -103,7 +85,42 @@ export function WalletWidget() {
   }, []);
 
   /*
-   * CONNECTED
+   * CONNECT WALLET
+   */
+
+  async function handleConnect() {
+    if (isPending) return;
+
+    try {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      if (!window.ethereum) {
+        alert(
+          "No browser wallet detected. Please install MetaMask or Rabby."
+        );
+        return;
+      }
+
+      const connector = injected({
+        shimDisconnect: true,
+      });
+
+      await connect({
+        connector,
+        chainId: arcTestnet.id,
+      });
+    } catch (error) {
+      console.error(
+        "Arc Pay wallet connection failed:",
+        error
+      );
+    }
+  }
+
+  /*
+   * CONNECTED + CORRECT NETWORK
    */
 
   if (isConnected && !wrongNetwork) {
@@ -136,7 +153,9 @@ export function WalletWidget() {
             </span>
 
             <span className="font-mono text-[10px] text-white/40">
-              {address ? shortAddress(address) : ""}
+              {address
+                ? shortAddress(address)
+                : ""}
             </span>
           </span>
 
@@ -165,7 +184,10 @@ export function WalletWidget() {
               rel="noreferrer"
               className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm text-white/65 hover:bg-white/[0.05] hover:text-white"
             >
-              <span>Get testnet USDC</span>
+              <span>
+                Get testnet USDC
+              </span>
+
               <span>↗</span>
             </a>
 
@@ -177,7 +199,10 @@ export function WalletWidget() {
               }}
               className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm text-red-300/80 hover:bg-red-400/[0.07]"
             >
-              <span>Disconnect</span>
+              <span>
+                Disconnect
+              </span>
+
               <span>×</span>
             </button>
           </div>
@@ -215,28 +240,6 @@ export function WalletWidget() {
    * NOT CONNECTED
    */
 
-  async function handleConnect() {
-    if (isPending) return;
-
-    const connector = connectors[0];
-
-    if (!connector) {
-      alert(
-        "No EVM wallet detected. Please install MetaMask or another browser wallet."
-      );
-      return;
-    }
-
-    try {
-      await connect({
-        connector,
-        chainId: arcTestnet.id,
-      });
-    } catch (error) {
-      console.error("Wallet connection failed:", error);
-    }
-  }
-
   return (
     <div
       ref={menuRef}
@@ -267,3 +270,4 @@ export function WalletWidget() {
     </div>
   );
 }
+

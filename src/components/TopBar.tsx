@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useAccount,
   useConnect,
@@ -18,7 +17,6 @@ import {
   ExternalLink,
   LogOut,
   Check,
-  Network,
   ShieldCheck,
   Wallet,
   ArrowRight,
@@ -32,19 +30,28 @@ import {
   USDC_DECIMALS,
   explorerAddressUrl,
 } from "@/lib/config";
-import { shortAddress, formatUsdc } from "@/lib/format";
+import {
+  shortAddress,
+  formatUsdc,
+} from "@/lib/format";
 
 export function TopBar() {
   const [mounted, setMounted] = useState(false);
-  const [walletModalOpen, setWalletModalOpen] = useState(false);
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] =
+    useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] =
+    useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const { address, isConnected, chainId } = useAccount();
+  const {
+    address,
+    isConnected,
+    chainId,
+  } = useAccount();
 
   const {
     connectors,
@@ -61,7 +68,8 @@ export function TopBar() {
   } = useSwitchChain();
 
   const wrongNetwork =
-    isConnected && chainId !== arcTestnet.id;
+    isConnected &&
+    chainId !== arcTestnet.id;
 
   const {
     data: balance,
@@ -73,12 +81,14 @@ export function TopBar() {
     args: address ? [address] : undefined,
     chainId: arcTestnet.id,
     query: {
-      enabled: Boolean(address) && !wrongNetwork,
+      enabled:
+        Boolean(address) && !wrongNetwork,
       refetchInterval: 15_000,
     },
   });
 
-  const connected = mounted && isConnected;
+  const connected =
+    mounted && isConnected;
 
   const shortAddr = address
     ? shortAddress(address)
@@ -104,7 +114,9 @@ export function TopBar() {
     if (!address) return;
 
     try {
-      await navigator.clipboard.writeText(address);
+      await navigator.clipboard.writeText(
+        address
+      );
 
       setCopied(true);
 
@@ -123,7 +135,9 @@ export function TopBar() {
     setWalletModalOpen(true);
   };
 
-  const handleConnect = (connector: Connector) => {
+  const handleConnect = (
+    connector: Connector
+  ) => {
     connect({
       connector,
       chainId: arcTestnet.id,
@@ -233,7 +247,9 @@ export function TopBar() {
                   onCopy={copyAddress}
                   onDisconnect={() => {
                     disconnect();
-                    setAccountMenuOpen(false);
+                    setAccountMenuOpen(
+                      false
+                    );
                   }}
                 />
               )}
@@ -309,188 +325,139 @@ function WalletModal({
   isPending: boolean;
   error: Error | null;
   onClose: () => void;
-  onSelect: (connector: Connector) => void;
+  onSelect: (
+    connector: Connector
+  ) => void;
 }) {
-  const injectedLabel = useMemo(() => {
-    if (typeof window === "undefined") {
-      return {
-        name: "Browser Wallet",
-        logo: <GenericWalletLogo />,
-      };
-    }
-
-    const eth = (
-      window as Window & {
-        ethereum?: {
-          isMetaMask?: boolean;
-          isRabby?: boolean;
-          isBraveWallet?: boolean;
-        };
-      }
-    ).ethereum;
-
-    if (eth?.isMetaMask) {
-      return {
-        name: "MetaMask",
-        logo: <MetaMaskLogo />,
-      };
-    }
-
-    if (eth?.isRabby) {
-      return {
-        name: "Rabby Wallet",
-        logo: <RabbyLogo />,
-      };
-    }
-
-    if (eth?.isBraveWallet) {
-      return {
-        name: "Brave Wallet",
-        logo: <GenericWalletLogo />,
-      };
-    }
-
-    return {
-      name: "Browser Wallet",
-      logo: <GenericWalletLogo />,
-    };
-  }, []);
+  /*
+   * Wagmi's injected connector discovers
+   * multiple EIP-6963 wallets.
+   *
+   * Remove duplicates without replacing the
+   * connector's actual name.
+   */
+  const uniqueConnectors =
+    connectors.filter(
+      (connector, index, array) =>
+        array.findIndex(
+          (item) =>
+            item.id === connector.id
+        ) === index
+    );
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-label="Connect wallet"
     >
+      {/* Backdrop */}
       <button
         type="button"
-        aria-label="Close wallet modal"
+        aria-label="Close wallet selection"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-black/70 backdrop-blur-md"
+        className="absolute inset-0 cursor-default"
       />
 
-      <div className="relative z-10 w-full max-w-[430px] overflow-hidden rounded-[26px] border border-white/[0.1] bg-[#0b1017] shadow-[0_40px_120px_-30px_rgba(0,0,0,.9)]">
-        <div className="border-b border-white/[0.06] px-6 pb-5 pt-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04]">
-                  <Wallet
-                    size={16}
-                    className="text-blue-400"
-                    strokeWidth={1.8}
-                  />
-                </div>
+      {/* Modal */}
+      <div className="relative z-10 flex max-h-[calc(100vh-32px)] w-full max-w-[560px] flex-col overflow-hidden rounded-[24px] border border-white/[0.12] bg-[#111111] shadow-[0_35px_100px_rgba(0,0,0,0.8)]">
 
-                <h2 className="text-[17px] font-semibold tracking-[-0.025em]">
-                  Connect wallet
-                </h2>
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-5 top-5 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.13] text-white/75 transition hover:bg-white/[0.07] hover:text-white"
+        >
+          <X
+            size={24}
+            strokeWidth={1.8}
+          />
+        </button>
+
+        {/* Header */}
+        <div className="shrink-0 px-8 pb-6 pt-9 text-center">
+
+          {/* Arc Pay logo */}
+          <div className="mx-auto flex h-[92px] w-[92px] items-center justify-center rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 shadow-[0_12px_35px_rgba(37,99,235,0.28)]">
+            <div className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#111111]">
+              <div className="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-[25px] font-black text-white">
+                A
               </div>
-
-              <p className="mt-3 max-w-[320px] text-[11px] leading-5 text-white/30">
-                Connect your wallet to send,
-                receive, and manage USDC
-                payments on Arc.
-              </p>
             </div>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/25 transition hover:bg-white/[0.05] hover:text-white/60"
-            >
-              <X
-                size={17}
-                strokeWidth={1.7}
-              />
-            </button>
           </div>
+
+          <h2 className="mt-6 text-[28px] font-bold tracking-[-0.035em] text-white">
+            Connect with Arc Pay
+          </h2>
+
+          <p className="mt-2 text-[13px] text-white/40">
+            Choose a wallet to continue
+          </p>
         </div>
 
-        <div className="p-3">
-          {connectors.map((connector) => {
-            const isInjected =
-              connector.type === "injected";
+        {/* Wallet list */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-5">
+          <div className="overflow-hidden rounded-[18px] border border-white/[0.13] bg-[#151515]">
+            {uniqueConnectors.map(
+              (connector, index) => (
+                <WalletOption
+                  key={connector.uid}
+                  connector={connector}
+                  disabled={isPending}
+                  showBorder={
+                    index <
+                    uniqueConnectors.length - 1
+                  }
+                  onClick={() =>
+                    onSelect(connector)
+                  }
+                />
+              )
+            )}
 
-            const label = isInjected
-              ? injectedLabel.name
-              : connector.name;
+            {uniqueConnectors.length ===
+              0 && (
+              <div className="px-6 py-12 text-center">
+                <Wallet
+                  size={34}
+                  strokeWidth={1.5}
+                  className="mx-auto text-white/20"
+                />
 
-            const logo = isInjected
-              ? injectedLabel.logo
-              : <CoinbaseLogo />;
+                <p className="mt-4 text-sm font-medium text-white/60">
+                  No wallets detected
+                </p>
 
-            return (
-              <WalletOption
-                key={connector.uid}
-                name={label}
-                description={
-                  isPending
-                    ? "Confirm in your wallet…"
-                    : `Connect using ${label}`
-                }
-                logo={logo}
-                disabled={isPending}
-                onClick={() =>
-                  onSelect(connector)
-                }
-              />
-            );
-          })}
+                <p className="mt-2 text-xs text-white/30">
+                  Install a browser wallet and
+                  refresh the page.
+                </p>
+              </div>
+            )}
+          </div>
 
-          {connectors.length === 0 && (
-            <p className="px-3.5 py-4 text-[11px] text-white/35">
-              No wallet connectors configured.
-            </p>
+          {error && (
+            <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-3 text-xs leading-5 text-red-300">
+              {error.message.includes(
+                "User rejected"
+              )
+                ? "Connection request was rejected."
+                : error.message}
+            </div>
           )}
         </div>
 
-        {error && (
-          <div className="mx-5 mb-2 rounded-xl border border-red-400/20 bg-red-400/[0.06] p-3 text-[11px] text-red-300">
-            {error.message.includes(
-              "User rejected"
-            )
-              ? "Connection request was rejected."
-              : error.message}
-          </div>
-        )}
-
-        <div className="mx-5 mb-4 rounded-xl border border-blue-400/[0.08] bg-blue-400/[0.025] p-3.5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/[0.09] text-blue-400">
-              <Network
-                size={15}
-                strokeWidth={1.7}
-              />
-            </div>
-
-            <div className="flex-1">
-              <div className="text-[10px] font-semibold text-white/55">
-                Arc Testnet
-              </div>
-
-              <div className="mt-0.5 text-[9px] text-white/25">
-                Your wallet will connect to Arc
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-[9px] font-medium text-emerald-400/70">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-
-              Available
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t border-white/[0.06] px-6 py-4">
-          <div className="flex items-center justify-center gap-2 text-[9px] text-white/20">
+        {/* Footer */}
+        <div className="shrink-0 border-t border-white/[0.08] px-7 py-5 text-center">
+          <div className="flex items-center justify-center gap-2 text-[11px] text-white/25">
             <ShieldCheck
-              size={13}
+              size={15}
               strokeWidth={1.7}
             />
 
-            Arc Pay never has access to your private keys
+            Arc Pay never has access to your
+            private keys
           </div>
         </div>
       </div>
@@ -499,94 +466,107 @@ function WalletModal({
 }
 
 function WalletOption({
-  name,
-  description,
-  logo,
+  connector,
   disabled,
+  showBorder,
   onClick,
 }: {
-  name: string;
-  description: string;
-  logo: React.ReactNode;
+  connector: Connector;
   disabled?: boolean;
+  showBorder: boolean;
   onClick: () => void;
 }) {
+  const name = connector.name;
+
+  /*
+   * IMPORTANT:
+   * Use the actual icon supplied by the
+   * EIP-6963 connector.
+   */
+  const icon = (
+    connector as Connector & {
+      icon?: string;
+    }
+  ).icon;
+
+  /*
+   * An injected connector means the wallet
+   * was discovered in this browser.
+   *
+   * For explicitly configured connectors,
+   * use `ready` when available.
+   */
+  const installed =
+    connector.type === "injected" ||
+    connector.ready === true;
+
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="group flex w-full items-center gap-3 rounded-2xl p-3.5 text-left transition hover:bg-white/[0.045] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+      className={`group flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-white/[0.045] active:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-50 ${
+        showBorder
+          ? "border-b border-white/[0.1]"
+          : ""
+      }`}
     >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] shadow-inner">
-        {logo}
+      {/* Real wallet icon */}
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+        {icon ? (
+          <img
+            src={icon}
+            alt=""
+            width={44}
+            height={44}
+            className="h-11 w-11 rounded-xl object-contain"
+          />
+        ) : (
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.05]">
+            <Wallet
+              size={21}
+              strokeWidth={1.7}
+              className="text-white/50"
+            />
+          </div>
+        )}
       </div>
 
+      {/* Name + description */}
       <div className="min-w-0 flex-1">
-        <div className="text-[12px] font-semibold text-white/75 transition group-hover:text-white">
+        <div className="text-[16px] font-semibold tracking-[-0.015em] text-white">
           {name}
         </div>
 
-        <div className="mt-1 text-[10px] text-white/25">
-          {description}
+        <div className="mt-1 text-[12px] text-white/35">
+          {isPending
+            ? "Confirm in your wallet…"
+            : `Connect using ${name}`}
         </div>
       </div>
 
-      <div className="flex h-7 w-7 items-center justify-center rounded-lg text-white/15 transition group-hover:bg-white/[0.05] group-hover:text-white/50">
+      {/* Installed badge */}
+      {installed && (
+        <span className="shrink-0 rounded-md border border-white/[0.08] bg-white/[0.12] px-2.5 py-1 text-[11px] font-medium text-white/60">
+          Installed
+        </span>
+      )}
+
+      {/* Arrow */}
+      <div className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center text-white/30 transition group-hover:text-white/65">
         <ArrowRight
-          size={14}
-          strokeWidth={1.7}
+          size={18}
+          strokeWidth={1.6}
         />
       </div>
     </button>
   );
 }
 
-function MetaMaskLogo() {
-  return (
-    <div className="relative flex h-7 w-7 items-center justify-center">
-      <div className="absolute inset-[3px] rotate-45 rounded-[5px] bg-gradient-to-br from-orange-400 via-orange-500 to-red-500" />
-
-      <div className="relative text-[9px] font-black text-white">
-        M
-      </div>
-    </div>
-  );
-}
-
-function CoinbaseLogo() {
-  return (
-    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1652f0]">
-      <div className="h-3 w-3 rounded-full bg-white" />
-    </div>
-  );
-}
-
-function RabbyLogo() {
-  return (
-    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#708cff]">
-      <span className="text-[12px] font-black text-white">
-        R
-      </span>
-    </div>
-  );
-}
-
-function GenericWalletLogo() {
-  return (
-    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/[0.08] text-white/70">
-      <Wallet
-        size={14}
-        strokeWidth={1.8}
-      />
-    </div>
-  );
-}
-
 function WalletAvatar() {
   return (
-    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 text-[9px] font-black text-white">
-      W
+    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 text-[9px] font-black text-white">
+      A
     </div>
   );
 }
@@ -705,7 +685,6 @@ function AccountAction({
       }`}
     >
       {icon}
-
       {label}
     </button>
   );

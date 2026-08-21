@@ -16,9 +16,9 @@ export function TopBar() {
   const [copied, setCopied] = useState(false);
 
   // UI-only for now.
-  // We will connect this to the real wallet state later.
-  const connected = false;
-  const address = "";
+  // Real wallet functionality will be connected after the UI is finalized.
+  const connected: boolean = false;
+  const address: string = "";
 
   const shortAddress = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -62,7 +62,7 @@ export function TopBar() {
           </div>
         </div>
 
-        {/* RIGHT */}
+        {/* RIGHT SIDE */}
         <div className="flex items-center gap-2">
 
           {/* NETWORK */}
@@ -80,10 +80,13 @@ export function TopBar() {
             aria-label="Notifications"
             className="flex h-[38px] w-[38px] items-center justify-center rounded-full text-[#66676E] transition hover:bg-[#F5F5F6] hover:text-[#111111]"
           >
-            <Bell size={17} strokeWidth={1.7} />
+            <Bell
+              size={17}
+              strokeWidth={1.7}
+            />
           </button>
 
-          {/* WALLET */}
+          {/* CONNECTED WALLET */}
           {connected ? (
             <div className="relative">
               <button
@@ -94,7 +97,10 @@ export function TopBar() {
                 className="flex h-[40px] items-center gap-2 rounded-full border border-[#E2E2E5] bg-white px-2.5 pr-3 transition hover:bg-[#F7F7F8]"
               >
                 <span className="flex h-[27px] w-[27px] items-center justify-center rounded-full bg-[#F1F1F2]">
-                  <Wallet size={14} />
+                  <Wallet
+                    size={14}
+                    strokeWidth={1.7}
+                  />
                 </span>
 
                 <span className="hidden text-[11px] font-medium text-[#33343A] sm:block">
@@ -104,11 +110,14 @@ export function TopBar() {
                 <ChevronDown
                   size={13}
                   className={`text-[#96979F] transition-transform ${
-                    accountMenuOpen ? "rotate-180" : ""
+                    accountMenuOpen
+                      ? "rotate-180"
+                      : ""
                   }`}
                 />
               </button>
 
+              {/* ACCOUNT MENU */}
               {accountMenuOpen && (
                 <div className="absolute right-0 top-[50px] w-[270px] overflow-hidden rounded-[18px] border border-[#E5E5E8] bg-white shadow-[0_18px_50px_-25px_rgba(0,0,0,.25)]">
 
@@ -123,10 +132,12 @@ export function TopBar() {
                   </div>
 
                   <div className="p-2">
+
+                    {/* COPY */}
                     <button
                       type="button"
                       onClick={copyAddress}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] text-[#55565D] hover:bg-[#F7F7F8]"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[11px] text-[#55565D] transition hover:bg-[#F7F7F8]"
                     >
                       {copied ? (
                         <Check size={15} />
@@ -139,19 +150,23 @@ export function TopBar() {
                         : "Copy address"}
                     </button>
 
+                    {/* EXPLORER */}
                     <a
                       href="#"
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-[#55565D] hover:bg-[#F7F7F8]"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-[#55565D] transition hover:bg-[#F7F7F8]"
                     >
                       <ExternalLink size={15} />
+
                       View on explorer
                     </a>
 
+                    {/* DISCONNECT */}
                     <button
                       type="button"
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-red-500 hover:bg-red-50"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] text-red-500 transition hover:bg-red-50"
                     >
                       <LogOut size={15} />
+
                       Disconnect
                     </button>
                   </div>
@@ -159,11 +174,16 @@ export function TopBar() {
               )}
             </div>
           ) : (
+            /* CONNECT WALLET */
             <button
               type="button"
               className="flex h-[40px] items-center gap-2 rounded-full bg-[#111111] px-4 text-[11px] font-semibold text-white transition hover:bg-[#292929]"
             >
-              <Wallet size={14} strokeWidth={1.8} />
+              <Wallet
+                size={14}
+                strokeWidth={1.8}
+              />
+
               Connect wallet
             </button>
           )}

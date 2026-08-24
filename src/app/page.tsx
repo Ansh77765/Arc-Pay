@@ -61,12 +61,6 @@ export default function DashboardPage() {
   const { address, isConnected } =
     useAccount();
 
-  /*
-   * ============================================================
-   * REAL USDC BALANCE
-   * ============================================================
-   */
-
   const {
     data: balance,
     isLoading: balanceLoading,
@@ -91,12 +85,6 @@ export default function DashboardPage() {
           10 ** USDC_DECIMALS
         ).toFixed(2)
       : "0.00";
-
-  /*
-   * ============================================================
-   * REAL ACTIVITY
-   * ============================================================
-   */
 
   useEffect(() => {
     let cancelled = false;
@@ -138,7 +126,7 @@ export default function DashboardPage() {
     activities.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-white text-[#111111]">
+    <div className="min-h-screen bg-[#F7F8FC] text-[#11131A]">
 
       <TopBar />
 
@@ -148,7 +136,7 @@ export default function DashboardPage() {
 
         <main className="min-w-0 flex-1">
 
-          <div className="px-6 pb-16 pt-8 sm:px-10 lg:px-12">
+          <div className="px-5 pb-16 pt-7 sm:px-8 lg:px-10">
 
             {/* HEADER */}
 
@@ -156,16 +144,22 @@ export default function DashboardPage() {
 
               <div>
 
-                <p className="text-[12px] font-medium text-[#85868E]">
-                  Overview
-                </p>
+                <div className="flex items-center gap-2">
 
-                <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.045em] text-[#111111]">
+                  <span className="h-2 w-2 rounded-full bg-[#6366F1]" />
+
+                  <p className="text-[11px] font-semibold tracking-wide text-[#747986]">
+                    ARC PAY
+                  </p>
+
+                </div>
+
+                <h1 className="mt-2 text-[32px] font-semibold tracking-[-0.055em] text-[#11131A]">
                   Dashboard
                 </h1>
 
-                <p className="mt-2 text-[13px] text-[#85868E]">
-                  Send and receive USDC payments on Arc.
+                <p className="mt-2 text-[13px] text-[#7D838F]">
+                  Your home for fast USDC payments on Arc.
                 </p>
 
               </div>
@@ -177,7 +171,7 @@ export default function DashboardPage() {
                   onClick={() =>
                     setUsernameOpen(true)
                   }
-                  className="flex h-10 items-center justify-center rounded-full border border-[#E1E1E4] bg-white px-4 text-[11px] font-semibold text-[#33343A] transition hover:bg-[#F7F7F8]"
+                  className="flex h-10 items-center justify-center rounded-full border border-[#E1E4EA] bg-white px-4 text-[11px] font-semibold text-[#414650] shadow-[0_1px_2px_rgba(17,19,26,0.03)] transition hover:border-[#D5D9E1] hover:bg-[#FAFAFC]"
                 >
                   Reserve username
                 </button>
@@ -187,70 +181,94 @@ export default function DashboardPage() {
                   onClick={() =>
                     setCreatePaymentOpen(true)
                   }
-                  className="flex h-10 items-center justify-center gap-2 rounded-full bg-[#111111] px-4 text-[11px] font-semibold text-white transition hover:bg-[#292929]"
+                  className="arc-primary flex h-10 items-center justify-center gap-2 rounded-full px-4 text-[11px] font-semibold"
                 >
                   <Plus
                     size={14}
-                    strokeWidth={1.8}
+                    strokeWidth={2}
                   />
 
-                  Create payment
+                  Request USDC
                 </button>
 
               </div>
+
             </div>
 
-            {/* BALANCE CARD */}
+            {/* BALANCE */}
 
-            <section className="rounded-[22px] border border-[#E7E7EA] bg-white">
+            <section className="relative overflow-hidden rounded-[24px] bg-[#0C1220] shadow-[0_18px_50px_rgba(17,19,26,0.12)]">
 
-              <div className="flex flex-col justify-between gap-8 p-6 sm:flex-row sm:items-end sm:p-7">
+              {/* ACCENT GLOW */}
+
+              <div className="pointer-events-none absolute -right-20 -top-28 h-[320px] w-[320px] rounded-full bg-[#4F46E5]/20 blur-[80px]" />
+
+              <div className="pointer-events-none absolute -bottom-40 right-[20%] h-[280px] w-[280px] rounded-full bg-[#2563EB]/10 blur-[80px]" />
+
+              <div className="relative flex flex-col justify-between gap-8 p-6 sm:flex-row sm:items-end sm:p-8">
 
                 <div>
 
-                  <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#A0A1A8]">
-                    Wallet balance
-                  </p>
+                  <div className="flex items-center gap-2">
 
-                  <div className="mt-3 flex items-end gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/10">
 
-                    <span className="text-[38px] font-semibold tracking-[-0.05em] text-[#111111]">
+                      <span className="text-[14px] font-bold text-white">
+                        $
+                      </span>
+
+                    </div>
+
+                    <p className="text-[11px] font-medium text-white/60">
+                      USDC Balance
+                    </p>
+
+                  </div>
+
+                  <div className="mt-4 flex items-end gap-2">
+
+                    <span className="tabular text-[44px] font-semibold leading-none tracking-[-0.065em] text-white">
                       {balanceLoading
                         ? "—"
                         : formattedBalance}
                     </span>
 
-                    <span className="mb-1.5 rounded-full bg-[#F5F5F6] px-2.5 py-1 text-[9px] font-semibold text-[#66676E]">
+                    <span className="mb-1 rounded-full bg-white/10 px-2.5 py-1 text-[9px] font-semibold text-white/70 ring-1 ring-white/10">
                       USDC
                     </span>
 
                   </div>
 
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-4 flex items-center gap-2">
 
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#31A66A]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#34D399]" />
 
-                    <span className="text-[10px] text-[#85868E]">
-                      Arc Testnet
+                    <span className="text-[10px] text-white/50">
+                      Available on Arc Testnet
                     </span>
 
                   </div>
 
                 </div>
 
-                <div className="flex items-center gap-2 rounded-full bg-[#F7F7F8] px-3 py-2">
+                <div className="flex gap-2">
 
-                  <Wallet
-                    size={14}
-                    strokeWidth={1.7}
-                    className="text-[#777880]"
-                  />
+                  <a
+                    href="/send"
+                    className="flex h-10 items-center justify-center rounded-full bg-white/[0.07] px-5 text-[10px] font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/[0.12]"
+                  >
+                    Send
+                  </a>
 
-                  <span className="font-mono text-[10px] text-[#777880]">
-                    {isConnected
-                      ? "Wallet connected"
-                      : "Wallet not connected"}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCreatePaymentOpen(true)
+                    }
+                    className="arc-accent flex h-10 items-center justify-center rounded-full px-5 text-[10px] font-semibold"
+                  >
+                    Request
+                  </button>
 
                 </div>
 
@@ -260,104 +278,107 @@ export default function DashboardPage() {
 
             {/* QUICK ACTIONS */}
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-7">
 
-              {/* RECEIVE */}
+              <SectionHeading
+                title="Quick actions"
+                description="Move money in a few seconds."
+              />
 
-              <button
-                type="button"
-                onClick={() =>
-                  setCreatePaymentOpen(true)
-                }
-                className="group rounded-[20px] border border-[#E7E7EA] bg-white p-5 text-left transition hover:border-[#DADADF] hover:bg-[#FCFCFC]"
-              >
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F5F6] text-[#55565D]">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCreatePaymentOpen(true)
+                  }
+                  className="group arc-card arc-card-hover relative overflow-hidden p-5 text-left"
+                >
 
-                  <ArrowDownLeft
-                    size={18}
-                    strokeWidth={1.7}
-                  />
+                  <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-[#8B5CF6]/[0.06] blur-2xl" />
 
-                </div>
+                  <div className="relative flex items-start justify-between">
 
-                <h2 className="mt-5 text-[14px] font-semibold text-[#111111]">
-                  Receive USDC
-                </h2>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#F1EDFF] text-[#6D4AFF]">
+                      <ArrowDownLeft
+                        size={19}
+                        strokeWidth={1.8}
+                      />
+                    </div>
 
-                <p className="mt-1 text-[11px] leading-5 text-[#8C8D95]">
-                  Create a payment request and
-                  share the link.
-                </p>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E8EAF0] text-[#777D89] transition group-hover:border-[#D9DCE5] group-hover:text-[#4F46E5]">
+                      →
+                    </span>
 
-                <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-semibold text-[#55565D]">
-                  Create request
+                  </div>
 
-                  <span className="transition-transform group-hover:translate-x-0.5">
-                    →
-                  </span>
-                </span>
+                  <h2 className="relative mt-5 text-[14px] font-semibold tracking-[-0.02em]">
+                    Request USDC
+                  </h2>
 
-              </button>
+                  <p className="relative mt-1.5 max-w-[340px] text-[11px] leading-5 text-[#858B97]">
+                    Request USDC from another Arc Pay user.
+                  </p>
 
-              {/* SEND */}
+                </button>
 
-              <a
-                href="/send"
-                className="group rounded-[20px] border border-[#E7E7EA] bg-white p-5 text-left transition hover:border-[#DADADF] hover:bg-[#FCFCFC]"
-              >
+                <a
+                  href="/send"
+                  className="group arc-card arc-card-hover relative overflow-hidden p-5"
+                >
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F5F6] text-[#55565D]">
+                  <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-[#2563EB]/[0.06] blur-2xl" />
 
-                  <ArrowUpRight
-                    size={18}
-                    strokeWidth={1.7}
-                  />
+                  <div className="relative flex items-start justify-between">
 
-                </div>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#EAF2FF] text-[#2563EB]">
+                      <ArrowUpRight
+                        size={19}
+                        strokeWidth={1.8}
+                      />
+                    </div>
 
-                <h2 className="mt-5 text-[14px] font-semibold text-[#111111]">
-                  Send USDC
-                </h2>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E8EAF0] text-[#777D89] transition group-hover:border-[#D9DCE5] group-hover:text-[#2563EB]">
+                      →
+                    </span>
 
-                <p className="mt-1 text-[11px] leading-5 text-[#8C8D95]">
-                  Send USDC directly to a wallet
-                  or Arc Pay username.
-                </p>
+                  </div>
 
-                <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-semibold text-[#55565D]">
-                  Send payment
+                  <h2 className="relative mt-5 text-[14px] font-semibold tracking-[-0.02em]">
+                    Send USDC
+                  </h2>
 
-                  <span className="transition-transform group-hover:translate-x-0.5">
-                    →
-                  </span>
-                </span>
+                  <p className="relative mt-1.5 max-w-[340px] text-[11px] leading-5 text-[#858B97]">
+                    Send USDC directly to a wallet or Arc Pay username.
+                  </p>
 
-              </a>
+                </a>
+
+              </div>
 
             </div>
 
             {/* RECENT ACTIVITY */}
 
-            <section className="mt-6 overflow-hidden rounded-[22px] border border-[#E7E7EA] bg-white">
+            <section className="arc-card mt-7 overflow-hidden">
 
-              <div className="flex items-center justify-between border-b border-[#EEEEF1] px-6 py-5">
+              <div className="flex items-center justify-between border-b border-[#EEF0F4] px-5 py-5 sm:px-6">
 
                 <div>
 
-                  <h2 className="text-[14px] font-semibold text-[#111111]">
+                  <h2 className="text-[14px] font-semibold tracking-[-0.02em]">
                     Recent activity
                   </h2>
 
-                  <p className="mt-1 text-[10px] text-[#999AA2]">
-                    Your latest payment activity.
+                  <p className="mt-1 text-[10px] text-[#9298A4]">
+                    Your latest on-chain payments.
                   </p>
 
                 </div>
 
                 <a
                   href="/activity"
-                  className="text-[10px] font-medium text-[#777880] transition hover:text-[#111111]"
+                  className="rounded-full px-3 py-1.5 text-[10px] font-semibold text-[#5B61D6] transition hover:bg-[#F2F2FF]"
                 >
                   View all
                 </a>
@@ -366,48 +387,36 @@ export default function DashboardPage() {
 
               {activityLoading ? (
 
-                <div className="flex min-h-[240px] items-center justify-center">
+                <div className="flex min-h-[220px] items-center justify-center">
 
-                  <p className="text-[10px] text-[#999AA2]">
+                  <div className="flex items-center gap-2 text-[10px] text-[#8D939F]">
+
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6366F1]" />
+
                     Loading activity…
-                  </p>
+
+                  </div>
 
                 </div>
 
               ) : recentActivities.length === 0 ? (
 
-                <div className="flex min-h-[240px] flex-col items-center justify-center px-6 text-center">
+                <div className="flex min-h-[220px] flex-col items-center justify-center px-6 text-center">
 
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F5F6]">
-
+                  <div className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-[#F3F4F8] text-[#777D89]">
                     <Wallet
                       size={19}
                       strokeWidth={1.5}
-                      className="text-[#777880]"
                     />
-
                   </div>
 
-                  <h3 className="mt-4 text-[13px] font-semibold text-[#33343A]">
+                  <h3 className="mt-4 text-[13px] font-semibold">
                     No activity yet
                   </h3>
 
-                  <p className="mt-1.5 max-w-[280px] text-[10px] leading-5 text-[#999AA2]">
-                    Your sent and received USDC
-                    payments will appear here.
+                  <p className="mt-1.5 max-w-[280px] text-[10px] leading-5 text-[#9298A4]">
+                    Your sent and received USDC payments will appear here.
                   </p>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCreatePaymentOpen(true)
-                    }
-                    className="mt-5 flex items-center gap-2 rounded-full bg-[#F5F5F6] px-4 py-2.5 text-[10px] font-semibold text-[#55565D] transition hover:bg-[#EEEEF0]"
-                  >
-                    <Plus size={13} />
-
-                    Create payment
-                  </button>
 
                 </div>
 
@@ -419,9 +428,7 @@ export default function DashboardPage() {
                     (activity, index) => (
                       <RecentActivityRow
                         key={`${activity.hash}-${activity.type}-${index}`}
-                        activity={
-                          activity
-                        }
+                        activity={activity}
                       />
                     )
                   )}
@@ -432,32 +439,35 @@ export default function DashboardPage() {
 
             </section>
 
-            {/* NETWORK INFO */}
+            {/* TRUST / NETWORK */}
 
-            <section className="mt-6 grid gap-4 md:grid-cols-3">
-
-              <InfoCard
-                title="Arc Testnet"
-                description="Payments settle directly on Arc."
-              />
+            <div className="mt-7 grid gap-3 md:grid-cols-3">
 
               <InfoCard
-                title="USDC"
-                description="Use USDC for every payment request."
+                title="Built on Arc"
+                description="USDC-native payments settle directly on Arc Testnet."
+                accent="blue"
               />
 
               <InfoCard
                 title="Non-custodial"
-                description="Your wallet and keys stay under your control."
+                description="Your wallet stays under your control."
+                accent="green"
               />
 
-            </section>
+              <InfoCard
+                title="Simple by design"
+                description="Send, request, and track USDC without the clutter."
+                accent="purple"
+              />
+
+            </div>
 
           </div>
-        </main>
-      </div>
 
-      {/* CREATE PAYMENT MODAL */}
+        </main>
+
+      </div>
 
       <CreatePaymentForm
         open={createPaymentOpen}
@@ -465,8 +475,6 @@ export default function DashboardPage() {
           setCreatePaymentOpen(false)
         }
       />
-
-      {/* USERNAME MODAL */}
 
       <UsernameModal
         open={usernameOpen}
@@ -480,6 +488,34 @@ export default function DashboardPage() {
   );
 }
 
+/* ============================================================
+   SECTION HEADING
+   ============================================================ */
+
+function SectionHeading({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div>
+      <h2 className="text-[14px] font-semibold tracking-[-0.02em]">
+        {title}
+      </h2>
+
+      <p className="mt-1 text-[10px] text-[#9298A4]">
+        {description}
+      </p>
+    </div>
+  );
+}
+
+/* ============================================================
+   RECENT ACTIVITY
+   ============================================================ */
+
 function RecentActivityRow({
   activity,
 }: {
@@ -489,24 +525,28 @@ function RecentActivityRow({
     activity.type === "sent";
 
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#EEEEF1] px-6 py-4 last:border-b-0">
+    <div className="flex items-center justify-between gap-4 border-b border-[#EEF0F4] px-5 py-4 last:border-b-0 sm:px-6">
 
       <div className="flex min-w-0 items-center gap-3">
 
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F5F5F6]">
-
+        <div
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+            isSent
+              ? "bg-[#EEF4FF] text-[#2563EB]"
+              : "bg-[#ECFAF4] text-[#16A36A]"
+          }`}
+        >
           {isSent ? (
             <ArrowUpRight
               size={15}
-              strokeWidth={1.7}
+              strokeWidth={1.8}
             />
           ) : (
             <ArrowDownLeft
               size={15}
-              strokeWidth={1.7}
+              strokeWidth={1.8}
             />
           )}
-
         </div>
 
         <div className="min-w-0">
@@ -517,7 +557,7 @@ function RecentActivityRow({
               : "USDC received"}
           </p>
 
-          <p className="mt-1 truncate font-mono text-[9px] text-[#999AA2]">
+          <p className="mt-1 truncate font-mono text-[9px] text-[#999FAA]">
             {isSent
               ? `To ${shortAddress(activity.to)}`
               : `From ${shortAddress(activity.from)}`}
@@ -530,10 +570,10 @@ function RecentActivityRow({
       <div className="flex shrink-0 items-center gap-3">
 
         <p
-          className={`text-[11px] font-semibold ${
+          className={`tabular text-[11px] font-semibold ${
             isSent
-              ? "text-[#D65A5A]"
-              : "text-[#31A66A]"
+              ? "text-[#D05B5B]"
+              : "text-[#16A36A]"
           }`}
         >
           {isSent ? "-" : "+"}
@@ -544,7 +584,7 @@ function RecentActivityRow({
           href={`https://testnet.arcscan.app/tx/${activity.hash}`}
           target="_blank"
           rel="noreferrer"
-          className="text-[#999AA2] transition hover:text-[#111111]"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[#A0A5B0] transition hover:bg-[#F4F5F8] hover:text-[#4F46E5]"
           title="View transaction"
         >
           <ExternalLink size={12} />
@@ -556,6 +596,54 @@ function RecentActivityRow({
   );
 }
 
+/* ============================================================
+   INFO CARD
+   ============================================================ */
+
+function InfoCard({
+  title,
+  description,
+  accent,
+}: {
+  title: string;
+  description: string;
+  accent: "blue" | "green" | "purple";
+}) {
+  const accentClasses = {
+    blue: "bg-[#EAF2FF] text-[#2563EB]",
+    green: "bg-[#EAF8F2] text-[#16A36A]",
+    purple: "bg-[#F1EDFF] text-[#6D4AFF]",
+  };
+
+  return (
+    <div className="arc-card p-4 transition hover:shadow-[0_8px_24px_rgba(17,19,26,0.045)]">
+
+      <div className="flex items-center gap-2">
+
+        <span
+          className={`flex h-7 w-7 items-center justify-center rounded-full ${accentClasses[accent]}`}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+        </span>
+
+        <h3 className="text-[12px] font-semibold">
+          {title}
+        </h3>
+
+      </div>
+
+      <p className="mt-2.5 text-[10px] leading-5 text-[#858B97]">
+        {description}
+      </p>
+
+    </div>
+  );
+}
+
+/* ============================================================
+   ADDRESS
+   ============================================================ */
+
 function shortAddress(
   address: string
 ) {
@@ -563,32 +651,4 @@ function shortAddress(
     0,
     6
   )}...${address.slice(-4)}`;
-}
-
-function InfoCard({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-[18px] border border-[#E7E7EA] bg-white p-5">
-
-      <div className="flex items-center gap-2">
-
-        <span className="h-2 w-2 rounded-full bg-[#31A66A]" />
-
-        <h3 className="text-[12px] font-semibold text-[#33343A]">
-          {title}
-        </h3>
-
-      </div>
-
-      <p className="mt-2 text-[10px] leading-5 text-[#8C8D95]">
-        {description}
-      </p>
-
-    </div>
-  );
 }

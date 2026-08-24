@@ -43,3 +43,5 @@ export function explorerTxUrl(hash: string): string {
 export function explorerAddressUrl(address: string): string {
   return `${EXPLORER_URL}/address/${address}`;
 }
+
+export const USERNAME_REGISTRY_ADDRESS = "0x72548258186fc632deB2854a1AF9A723A5c6e03F" as const;

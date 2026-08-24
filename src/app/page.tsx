@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -14,6 +14,31 @@ import { Sidebar } from "@/components/Sidebar";
 import { CreatePaymentForm } from "@/components/CreatePaymentForm";
 import { UsernameModal } from "@/components/UsernameModal";
 
+import {
+  USDC_ADDRESS,
+  USDC_DECIMALS,
+} from "@/lib/config";
+
+const erc20Abi = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+      },
+    ],
+  },
+] as const;
+
 export default function DashboardPage() {
   const [createPaymentOpen, setCreatePaymentOpen] =
     useState(false);
@@ -21,16 +46,51 @@ export default function DashboardPage() {
   const [usernameOpen, setUsernameOpen] =
     useState(false);
 
-  const { address } = useAccount();
+  const { address, isConnected } =
+    useAccount();
+
+  /*
+   * ============================================================
+   * REAL USDC BALANCE
+   * ============================================================
+   */
+
+  const {
+    data: balance,
+    isLoading: balanceLoading,
+  } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: address
+      ? [address]
+      : undefined,
+    query: {
+      enabled:
+        isConnected &&
+        !!address,
+    },
+  });
+
+  const formattedBalance =
+    balance !== undefined
+      ? (
+          Number(balance) /
+          10 ** USDC_DECIMALS
+        ).toFixed(2)
+      : "0.00";
 
   return (
     <div className="min-h-screen bg-white text-[#111111]">
+
       <TopBar />
 
       <div className="mx-auto flex max-w-[1440px]">
+
         <Sidebar />
 
         <main className="min-w-0 flex-1">
+
           <div className="px-6 pb-16 pt-8 sm:px-10 lg:px-12">
 
             {/* HEADER */}
@@ -38,6 +98,7 @@ export default function DashboardPage() {
             <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 
               <div>
+
                 <p className="text-[12px] font-medium text-[#85868E]">
                   Overview
                 </p>
@@ -49,6 +110,7 @@ export default function DashboardPage() {
                 <p className="mt-2 text-[13px] text-[#85868E]">
                   Send and receive USDC payments on Arc.
                 </p>
+
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -100,7 +162,9 @@ export default function DashboardPage() {
                   <div className="mt-3 flex items-end gap-2">
 
                     <span className="text-[38px] font-semibold tracking-[-0.05em] text-[#111111]">
-                      20.00
+                      {balanceLoading
+                        ? "—"
+                        : formattedBalance}
                     </span>
 
                     <span className="mb-1.5 rounded-full bg-[#F5F5F6] px-2.5 py-1 text-[9px] font-semibold text-[#66676E]">
@@ -130,7 +194,9 @@ export default function DashboardPage() {
                   />
 
                   <span className="font-mono text-[10px] text-[#777880]">
-                    Wallet connected
+                    {isConnected
+                      ? "Wallet connected"
+                      : "Wallet not connected"}
                   </span>
 
                 </div>
@@ -172,13 +238,11 @@ export default function DashboardPage() {
                 </p>
 
                 <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-semibold text-[#55565D]">
-
                   Create request
 
                   <span className="transition-transform group-hover:translate-x-0.5">
                     →
                   </span>
-
                 </span>
 
               </button>
@@ -277,11 +341,9 @@ export default function DashboardPage() {
                   }
                   className="mt-5 flex items-center gap-2 rounded-full bg-[#F5F5F6] px-4 py-2.5 text-[10px] font-semibold text-[#55565D] transition hover:bg-[#EEEEF0]"
                 >
-
                   <Plus size={13} />
 
                   Create payment
-
                 </button>
 
               </div>

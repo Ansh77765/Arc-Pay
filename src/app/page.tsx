@@ -33,9 +33,7 @@ export default function DashboardPage() {
         <main className="min-w-0 flex-1">
           <div className="px-6 pb-16 pt-8 sm:px-10 lg:px-12">
 
-            {/* =====================================================
-                HEADER
-               ===================================================== */}
+            {/* HEADER */}
 
             <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 
@@ -87,15 +85,14 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* =====================================================
-                BALANCE CARD
-               ===================================================== */}
+            {/* BALANCE CARD */}
 
             <section className="rounded-[22px] border border-[#E7E7EA] bg-white">
 
               <div className="flex flex-col justify-between gap-8 p-6 sm:flex-row sm:items-end sm:p-7">
 
                 <div>
+
                   <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#A0A1A8]">
                     Wallet balance
                   </p>
@@ -109,6 +106,7 @@ export default function DashboardPage() {
                     <span className="mb-1.5 rounded-full bg-[#F5F5F6] px-2.5 py-1 text-[9px] font-semibold text-[#66676E]">
                       USDC
                     </span>
+
                   </div>
 
                   <div className="mt-3 flex items-center gap-2">
@@ -118,7 +116,9 @@ export default function DashboardPage() {
                     <span className="text-[10px] text-[#85868E]">
                       Arc Testnet
                     </span>
+
                   </div>
+
                 </div>
 
                 <div className="flex items-center gap-2 rounded-full bg-[#F7F7F8] px-3 py-2">
@@ -132,16 +132,18 @@ export default function DashboardPage() {
                   <span className="font-mono text-[10px] text-[#777880]">
                     Wallet connected
                   </span>
+
                 </div>
 
               </div>
+
             </section>
 
-            {/* =====================================================
-                QUICK ACTIONS
-               ===================================================== */}
+            {/* QUICK ACTIONS */}
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
+
+              {/* RECEIVE */}
 
               <button
                 type="button"
@@ -152,10 +154,12 @@ export default function DashboardPage() {
               >
 
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F5F6] text-[#55565D]">
+
                   <ArrowDownLeft
                     size={18}
                     strokeWidth={1.7}
                   />
+
                 </div>
 
                 <h2 className="mt-5 text-[14px] font-semibold text-[#111111]">
@@ -168,22 +172,31 @@ export default function DashboardPage() {
                 </p>
 
                 <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-semibold text-[#55565D]">
+
                   Create request
 
                   <span className="transition-transform group-hover:translate-x-0.5">
                     →
                   </span>
+
                 </span>
 
               </button>
 
-              <div className="rounded-[20px] border border-[#E7E7EA] bg-white p-5">
+              {/* SEND */}
+
+              <a
+                href="/send"
+                className="group rounded-[20px] border border-[#E7E7EA] bg-white p-5 text-left transition hover:border-[#DADADF] hover:bg-[#FCFCFC]"
+              >
 
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F5F6] text-[#55565D]">
+
                   <ArrowUpRight
                     size={18}
                     strokeWidth={1.7}
                   />
+
                 </div>
 
                 <h2 className="mt-5 text-[14px] font-semibold text-[#111111]">
@@ -191,26 +204,32 @@ export default function DashboardPage() {
                 </h2>
 
                 <p className="mt-1 text-[11px] leading-5 text-[#8C8D95]">
-                  Pay someone using an Arc Pay
-                  payment request.
+                  Send USDC directly to a wallet
+                  or Arc Pay username.
                 </p>
 
-                <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-medium text-[#A0A1A8]">
-                  Open a payment link to pay
+                <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-semibold text-[#55565D]">
+
+                  Send payment
+
+                  <span className="transition-transform group-hover:translate-x-0.5">
+                    →
+                  </span>
+
                 </span>
 
-              </div>
+              </a>
+
             </div>
 
-            {/* =====================================================
-                RECENT ACTIVITY
-               ===================================================== */}
+            {/* RECENT ACTIVITY */}
 
             <section className="mt-6 overflow-hidden rounded-[22px] border border-[#E7E7EA] bg-white">
 
               <div className="flex items-center justify-between border-b border-[#EEEEF1] px-6 py-5">
 
                 <div>
+
                   <h2 className="text-[14px] font-semibold text-[#111111]">
                     Recent activity
                   </h2>
@@ -218,6 +237,7 @@ export default function DashboardPage() {
                   <p className="mt-1 text-[10px] text-[#999AA2]">
                     Your latest payment activity.
                   </p>
+
                 </div>
 
                 <a
@@ -232,11 +252,13 @@ export default function DashboardPage() {
               <div className="flex min-h-[240px] flex-col items-center justify-center px-6 text-center">
 
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F5F6]">
+
                   <Wallet
                     size={19}
                     strokeWidth={1.5}
                     className="text-[#777880]"
                   />
+
                 </div>
 
                 <h3 className="mt-4 text-[13px] font-semibold text-[#33343A]">
@@ -255,17 +277,18 @@ export default function DashboardPage() {
                   }
                   className="mt-5 flex items-center gap-2 rounded-full bg-[#F5F5F6] px-4 py-2.5 text-[10px] font-semibold text-[#55565D] transition hover:bg-[#EEEEF0]"
                 >
+
                   <Plus size={13} />
 
                   Create payment
+
                 </button>
 
               </div>
+
             </section>
 
-            {/* =====================================================
-                NETWORK INFO
-               ===================================================== */}
+            {/* NETWORK INFO */}
 
             <section className="mt-6 grid gap-4 md:grid-cols-3">
 
@@ -290,9 +313,7 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      {/* =========================================================
-          CREATE PAYMENT MODAL
-         ========================================================= */}
+      {/* CREATE PAYMENT MODAL */}
 
       <CreatePaymentForm
         open={createPaymentOpen}
@@ -301,9 +322,7 @@ export default function DashboardPage() {
         }
       />
 
-      {/* =========================================================
-          USERNAME MODAL
-         ========================================================= */}
+      {/* USERNAME MODAL */}
 
       <UsernameModal
         open={usernameOpen}

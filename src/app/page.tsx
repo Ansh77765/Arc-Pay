@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import {
@@ -254,12 +255,12 @@ export default function DashboardPage() {
 
                 <div className="flex gap-2">
 
-                  <a
+                  <Link
                     href="/send"
                     className="flex h-10 items-center justify-center rounded-full bg-white/[0.07] px-5 text-[10px] font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/[0.12]"
                   >
                     Send
-                  </a>
+                  </Link>
 
                   <button
                     type="button"
@@ -325,7 +326,7 @@ export default function DashboardPage() {
 
                 </button>
 
-                <a
+                <Link
                   href="/send"
                   className="group arc-card arc-card-hover relative overflow-hidden p-5"
                 >
@@ -355,7 +356,7 @@ export default function DashboardPage() {
                     Send USDC directly to a wallet or Arc Pay username.
                   </p>
 
-                </a>
+                </Link>
 
               </div>
 
@@ -381,12 +382,12 @@ export default function DashboardPage() {
 
                 </div>
 
-                <a
+                <Link
                   href="/activity"
                   className="rounded-full px-3 py-1.5 text-[10px] font-semibold text-[#5B61D6] transition hover:bg-[#F2F2FF]"
                 >
                   View all
-                </a>
+                </Link>
 
               </div>
 

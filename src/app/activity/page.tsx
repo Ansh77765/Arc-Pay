@@ -1,15 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useAccount,
-  useReadContract,
 } from "wagmi";
 
 import {
+  Activity as ActivityIcon,
   ArrowDownLeft,
   ArrowUpRight,
-  Activity as ActivityIcon,
   Clock3,
   ExternalLink,
   Filter,
@@ -20,51 +19,9 @@ import { TopBar } from "@/components/TopBar";
 import { Sidebar } from "@/components/Sidebar";
 
 import {
-  USDC_ADDRESS,
-  USDC_DECIMALS,
-  EXPLORER_URL,
-} from "@/lib/config";
-
-const erc20Abi = [
-  {
-    type: "event",
-    name: "Transfer",
-    inputs: [
-      {
-        name: "from",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
-      {
-        name: "to",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
-      {
-        name: "value",
-        type: "uint256",
-        indexed: false,
-        internalType: "uint256",
-      },
-    ],
-    anonymous: false,
-  },
-] as const;
-
-type ActivityType =
-  | "all"
-  | "sent"
-  | "received";
-
-type ActivityItem = {
-  type: "sent" | "received";
-  hash: string;
-  from: string;
-  to: string;
-  amount: string;
-};
+  getWalletActivity,
+  type ActivityItem,
+} from "@/lib/activity";
 
 export default function ActivityPage() {
   const {
@@ -72,23 +29,74 @@ export default function ActivityPage() {
     isConnected,
   } = useAccount();
 
+  const [activities, setActivities] =
+    useState<ActivityItem[]>([]);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState<string | null>(null);
+
   const [activeTab, setActiveTab] =
-    useState<ActivityType>("all");
+    useState<
+      "all" | "sent" | "received"
+    >("all");
 
   /*
    * ============================================================
-   * NOTE
+   * LOAD ACTIVITY
    * ============================================================
-   *
-   * The current Wagmi setup doesn't expose historical event
-   * queries directly here, so this page starts with the proper
-   * connected-wallet structure.
-   *
-   * We'll use Arc's RPC/log history next rather than inventing
-   * activity data.
    */
 
-  const activities: ActivityItem[] = [];
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadActivity() {
+      if (!address) {
+        setActivities([]);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const result =
+          await getWalletActivity(
+            address
+          );
+
+        if (!cancelled) {
+          setActivities(result);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Could not load activity."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadActivity();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
+
+  /*
+   * ============================================================
+   * FILTER
+   * ============================================================
+   */
 
   const filteredActivities =
     useMemo(() => {
@@ -97,11 +105,14 @@ export default function ActivityPage() {
       }
 
       return activities.filter(
-        (item) =>
-          item.type ===
+        (activity) =>
+          activity.type ===
           activeTab
       );
-    }, [activeTab]);
+    }, [
+      activities,
+      activeTab,
+    ]);
 
   return (
     <div className="min-h-screen bg-white text-[#111111]">
@@ -213,40 +224,90 @@ export default function ActivityPage() {
 
               </div>
 
-              {/* CONTENT */}
+              {/* LOADING */}
 
-              {!isConnected ? (
+              {loading && (
+                <div className="flex min-h-[300px] flex-col items-center justify-center">
 
-                <EmptyState
-                  title="Connect your wallet"
-                  description="Connect your wallet to view your USDC activity on Arc."
-                />
+                  <Loader2
+                    size={24}
+                    className="animate-spin text-[#777880]"
+                  />
 
-              ) : filteredActivities.length === 0 ? (
+                  <p className="mt-4 text-[11px] text-[#8C8D95]">
+                    Loading on-chain activity…
+                  </p>
 
-                <EmptyState
-                  title="No activity yet"
-                  description="Your sent and received USDC payments will appear here once there is on-chain activity."
-                />
-
-              ) : (
-
-                <div>
-                  {filteredActivities.map(
-                    (activity) => (
-                      <ActivityRow
-                        key={
-                          activity.hash
-                        }
-                        activity={
-                          activity
-                        }
-                      />
-                    )
-                  )}
                 </div>
-
               )}
+
+              {/* ERROR */}
+
+              {!loading &&
+                error && (
+                  <div className="flex min-h-[300px] flex-col items-center justify-center px-6 text-center">
+
+                    <div className="flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-[#FFF7F7] text-[#D65A5A]">
+                      <ActivityIcon
+                        size={23}
+                        strokeWidth={1.5}
+                      />
+                    </div>
+
+                    <h2 className="mt-5 text-[16px] font-semibold">
+                      Could not load activity
+                    </h2>
+
+                    <p className="mt-2 max-w-[420px] text-[11px] leading-5 text-[#8C8D95]">
+                      {error}
+                    </p>
+
+                  </div>
+                )}
+
+              {/* EMPTY */}
+
+              {!loading &&
+                !error &&
+                isConnected &&
+                filteredActivities.length ===
+                  0 && (
+                  <EmptyState
+                    title="No activity yet"
+                    description="Your sent and received USDC payments will appear here once there is on-chain activity."
+                  />
+                )}
+
+              {/* NOT CONNECTED */}
+
+              {!loading &&
+                !error &&
+                !isConnected && (
+                  <EmptyState
+                    title="Connect your wallet"
+                    description="Connect your wallet to view your USDC activity on Arc."
+                  />
+                )}
+
+              {/* ROWS */}
+
+              {!loading &&
+                !error &&
+                filteredActivities.length >
+                  0 && (
+                  <div>
+                    {filteredActivities.map(
+                      (activity, index) => (
+                        <ActivityRow
+                          key={`${activity.hash}-${activity.type}-${index}`}
+                          activity={
+                            activity
+                          }
+                        />
+                      )
+                    )}
+                  </div>
+                )}
 
             </section>
 
@@ -450,7 +511,7 @@ function ActivityRow({
         </p>
 
         <a
-          href={`${EXPLORER_URL}/tx/${activity.hash}`}
+          href={`https://testnet.arcscan.app/tx/${activity.hash}`}
           target="_blank"
           rel="noreferrer"
           className="mt-1 inline-flex items-center gap-1 text-[8px] text-[#999AA2] hover:text-[#55565D]"

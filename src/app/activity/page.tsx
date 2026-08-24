@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  useAccount,
-} from "wagmi";
+import { useAccount } from "wagmi";
 
 import {
   Activity as ActivityIcon,
   ArrowDownLeft,
   ArrowUpRight,
+  CheckCircle2,
   Clock3,
   ExternalLink,
   Filter,
   Loader2,
+  RefreshCw,
+  Wallet,
 } from "lucide-react";
 
 import { TopBar } from "@/components/TopBar";
@@ -22,6 +23,8 @@ import {
   getWalletActivity,
   type ActivityItem,
 } from "@/lib/activity";
+
+import { EXPLORER_URL } from "@/lib/config";
 
 export default function ActivityPage() {
   const {
@@ -39,20 +42,39 @@ export default function ActivityPage() {
     useState<string | null>(null);
 
   const [activeTab, setActiveTab] =
-    useState<
-      "all" | "sent" | "received"
-    >("all");
+    useState<"all" | "sent" | "received">(
+      "all"
+    );
 
-  /*
-   * ============================================================
-   * LOAD ACTIVITY
-   * ============================================================
-   */
+  async function loadActivity() {
+    if (!address) {
+      setActivities([]);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result =
+        await getWalletActivity(address);
+
+      setActivities(result);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not load activity."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadActivity() {
+    async function initialLoad() {
       if (!address) {
         setActivities([]);
         return;
@@ -63,9 +85,7 @@ export default function ActivityPage() {
 
       try {
         const result =
-          await getWalletActivity(
-            address
-          );
+          await getWalletActivity(address);
 
         if (!cancelled) {
           setActivities(result);
@@ -85,18 +105,12 @@ export default function ActivityPage() {
       }
     }
 
-    loadActivity();
+    initialLoad();
 
     return () => {
       cancelled = true;
     };
   }, [address]);
-
-  /*
-   * ============================================================
-   * FILTER
-   * ============================================================
-   */
 
   const filteredActivities =
     useMemo(() => {
@@ -106,16 +120,22 @@ export default function ActivityPage() {
 
       return activities.filter(
         (activity) =>
-          activity.type ===
-          activeTab
+          activity.type === activeTab
       );
-    }, [
-      activities,
-      activeTab,
-    ]);
+    }, [activities, activeTab]);
+
+  const sentCount =
+    activities.filter(
+      (item) => item.type === "sent"
+    ).length;
+
+  const receivedCount =
+    activities.filter(
+      (item) => item.type === "received"
+    ).length;
 
   return (
-    <div className="min-h-screen bg-white text-[#111111]">
+    <div className="min-h-screen bg-[#F7F8FC] text-[#11131A]">
 
       <TopBar />
 
@@ -125,55 +145,120 @@ export default function ActivityPage() {
 
         <main className="min-w-0 flex-1">
 
-          <div className="px-6 pb-12 pt-7 sm:px-10 lg:px-12">
+          <div className="px-5 pb-16 pt-7 sm:px-8 lg:px-10">
 
-            {/* HEADER */}
+            {/* ==================================================
+                HEADER
+                ================================================== */}
 
-            <div className="mb-7 flex items-end justify-between gap-4">
+            <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 
               <div>
 
-                <p className="text-[11px] font-medium text-[#85868E]">
-                  Wallet
-                </p>
+                <div className="flex items-center gap-2">
 
-                <h1 className="mt-1.5 text-[28px] font-semibold tracking-[-0.045em]">
+                  <span className="h-2 w-2 rounded-full bg-[#6366F1]" />
+
+                  <p className="text-[11px] font-semibold tracking-wide text-[#747986]">
+                    WALLET
+                  </p>
+
+                </div>
+
+                <h1 className="mt-2 text-[32px] font-semibold tracking-[-0.055em]">
                   Activity
                 </h1>
 
-                <p className="mt-1.5 text-[12px] text-[#85868E]">
-                  View your payment activity on Arc.
+                <p className="mt-2 text-[13px] text-[#7D838F]">
+                  Track your USDC payments on Arc.
                 </p>
 
               </div>
 
-              <div className="flex items-center gap-2 rounded-full border border-[#E2E2E6] px-3.5 py-2">
+              <button
+                type="button"
+                onClick={loadActivity}
+                disabled={
+                  loading ||
+                  !isConnected
+                }
+                className="flex h-10 items-center justify-center gap-2 rounded-full border border-[#E1E4EA] bg-white px-4 text-[10px] font-semibold text-[#555B67] shadow-[0_1px_2px_rgba(17,19,26,0.03)] transition hover:border-[#D5D9E1] hover:bg-[#FAFAFC] disabled:cursor-not-allowed disabled:opacity-50"
+              >
 
-                <Filter
+                <RefreshCw
                   size={13}
-                  strokeWidth={1.7}
+                  className={
+                    loading
+                      ? "animate-spin"
+                      : ""
+                  }
                 />
 
-                <span className="text-[10px] font-medium text-[#55565D]">
-                  All activity
-                </span>
+                Refresh
 
-              </div>
+              </button>
 
             </div>
 
-            {/* ACTIVITY */}
+            {/* ==================================================
+                SUMMARY
+                ================================================== */}
 
-            <section className="overflow-hidden rounded-[20px] border border-[#E7E7EA] bg-white">
+            <div className="mb-6 grid gap-3 sm:grid-cols-3">
+
+              <SummaryCard
+                label="Total activity"
+                value={activities.length}
+                icon={
+                  <ActivityIcon
+                    size={16}
+                    strokeWidth={1.7}
+                  />
+                }
+                accent="purple"
+              />
+
+              <SummaryCard
+                label="Sent"
+                value={sentCount}
+                icon={
+                  <ArrowUpRight
+                    size={16}
+                    strokeWidth={1.8}
+                  />
+                }
+                accent="blue"
+              />
+
+              <SummaryCard
+                label="Received"
+                value={receivedCount}
+                icon={
+                  <ArrowDownLeft
+                    size={16}
+                    strokeWidth={1.8}
+                  />
+                }
+                accent="green"
+              />
+
+            </div>
+
+            {/* ==================================================
+                ACTIVITY CARD
+                ================================================== */}
+
+            <section className="arc-card overflow-hidden">
 
               {/* TABS */}
 
-              <div className="border-b border-[#E8E8EB] px-5">
+              <div className="flex flex-col border-b border-[#EEF0F4] sm:flex-row sm:items-center sm:justify-between">
 
-                <div className="flex gap-7">
+                <div className="flex gap-1 px-4 sm:px-5">
 
                   <ActivityTab
                     label="All"
+                    count={activities.length}
                     active={
                       activeTab === "all"
                     }
@@ -184,6 +269,7 @@ export default function ActivityPage() {
 
                   <ActivityTab
                     label="Sent"
+                    count={sentCount}
                     active={
                       activeTab === "sent"
                     }
@@ -194,6 +280,7 @@ export default function ActivityPage() {
 
                   <ActivityTab
                     label="Received"
+                    count={receivedCount}
                     active={
                       activeTab === "received"
                     }
@@ -204,38 +291,63 @@ export default function ActivityPage() {
 
                 </div>
 
-              </div>
+                <div className="hidden items-center gap-2 px-5 pb-3 sm:flex sm:pb-0">
 
-              {/* COLUMNS */}
+                  <div className="flex items-center gap-2 rounded-full bg-[#F4F5F8] px-3 py-1.5 text-[9px] font-semibold text-[#777D89]">
 
-              <div className="hidden grid-cols-[1fr_150px_130px] border-b border-[#EEEEF1] px-5 py-3.5 text-[9px] uppercase tracking-[0.1em] text-[#A0A1A8] sm:grid">
+                    <Filter size={11} />
 
-                <span>
-                  Transaction
-                </span>
+                    On-chain
 
-                <span>
-                  Status
-                </span>
+                  </div>
 
-                <span className="text-right">
-                  Amount
-                </span>
+                </div>
 
               </div>
+
+              {/* TABLE HEADER */}
+
+              {!loading &&
+                !error &&
+                filteredActivities.length >
+                  0 && (
+                  <div className="hidden grid-cols-[1fr_150px_150px] border-b border-[#EEF0F4] bg-[#FBFBFD] px-6 py-3 text-[8px] font-semibold uppercase tracking-[0.12em] text-[#A0A6B1] sm:grid">
+
+                    <span>
+                      Transaction
+                    </span>
+
+                    <span>
+                      Status
+                    </span>
+
+                    <span className="text-right">
+                      Amount
+                    </span>
+
+                  </div>
+                )}
 
               {/* LOADING */}
 
               {loading && (
-                <div className="flex min-h-[300px] flex-col items-center justify-center">
+                <div className="flex min-h-[330px] flex-col items-center justify-center">
 
-                  <Loader2
-                    size={24}
-                    className="animate-spin text-[#777880]"
-                  />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-[#F1F2FF] text-[#6366F1]">
 
-                  <p className="mt-4 text-[11px] text-[#8C8D95]">
-                    Loading on-chain activity…
+                    <Loader2
+                      size={20}
+                      className="animate-spin"
+                    />
+
+                  </div>
+
+                  <p className="mt-4 text-[11px] font-semibold">
+                    Loading activity
+                  </p>
+
+                  <p className="mt-1 text-[9px] text-[#9298A4]">
+                    Checking the Arc network…
                   </p>
 
                 </div>
@@ -245,24 +357,47 @@ export default function ActivityPage() {
 
               {!loading &&
                 error && (
-                  <div className="flex min-h-[300px] flex-col items-center justify-center px-6 text-center">
+                  <div className="flex min-h-[330px] flex-col items-center justify-center px-6 text-center">
 
-                    <div className="flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-[#FFF7F7] text-[#D65A5A]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-[#FFF1F1] text-[#D05B5B]">
+
                       <ActivityIcon
-                        size={23}
+                        size={20}
                         strokeWidth={1.5}
                       />
+
                     </div>
 
-                    <h2 className="mt-5 text-[16px] font-semibold">
-                      Could not load activity
+                    <h2 className="mt-5 text-[14px] font-semibold">
+                      Couldn’t load activity
                     </h2>
 
-                    <p className="mt-2 max-w-[420px] text-[11px] leading-5 text-[#8C8D95]">
+                    <p className="mt-2 max-w-[360px] text-[10px] leading-5 text-[#8C929E]">
                       {error}
                     </p>
 
+                    <button
+                      type="button"
+                      onClick={loadActivity}
+                      className="mt-5 flex h-9 items-center gap-2 rounded-full bg-[#11131A] px-4 text-[9px] font-semibold text-white transition hover:bg-[#272A32]"
+                    >
+                      <RefreshCw size={11} />
+                      Try again
+                    </button>
+
                   </div>
+                )}
+
+              {/* NOT CONNECTED */}
+
+              {!loading &&
+                !error &&
+                !isConnected && (
+                  <EmptyState
+                    connected={false}
+                    title="Connect your wallet"
+                    description="Connect your wallet to see your USDC activity on Arc."
+                  />
                 )}
 
               {/* EMPTY */}
@@ -273,19 +408,21 @@ export default function ActivityPage() {
                 filteredActivities.length ===
                   0 && (
                   <EmptyState
-                    title="No activity yet"
-                    description="Your sent and received USDC payments will appear here once there is on-chain activity."
-                  />
-                )}
-
-              {/* NOT CONNECTED */}
-
-              {!loading &&
-                !error &&
-                !isConnected && (
-                  <EmptyState
-                    title="Connect your wallet"
-                    description="Connect your wallet to view your USDC activity on Arc."
+                    connected
+                    title={
+                      activeTab === "all"
+                        ? "No activity yet"
+                        : activeTab === "sent"
+                        ? "No sent payments"
+                        : "No received payments"
+                    }
+                    description={
+                      activeTab === "all"
+                        ? "Your sent and received USDC payments will appear here once there is on-chain activity."
+                        : activeTab === "sent"
+                        ? "USDC payments you send will appear here."
+                        : "USDC payments received by your wallet will appear here."
+                    }
                   />
                 )}
 
@@ -311,7 +448,9 @@ export default function ActivityPage() {
 
             </section>
 
-            {/* ACTIVITY TYPES */}
+            {/* ==================================================
+                FOOTER CARDS
+                ================================================== */}
 
             <section className="mt-6 grid gap-3 md:grid-cols-3">
 
@@ -319,40 +458,46 @@ export default function ActivityPage() {
                 icon={
                   <ArrowUpRight
                     size={16}
-                    strokeWidth={1.7}
+                    strokeWidth={1.8}
                   />
                 }
                 title="Sent"
-                description="Outgoing USDC payments."
+                description="Outgoing USDC payments from your wallet."
+                accent="blue"
               />
 
               <ActivityInfo
                 icon={
                   <ArrowDownLeft
                     size={16}
-                    strokeWidth={1.7}
+                    strokeWidth={1.8}
                   />
                 }
                 title="Received"
-                description="USDC received by your wallet."
+                description="USDC received directly by your wallet."
+                accent="green"
               />
 
               <ActivityInfo
                 icon={
                   <ExternalLink
                     size={16}
-                    strokeWidth={1.7}
+                    strokeWidth={1.8}
                   />
                 }
-                title="On-chain"
-                description="Transactions can be verified on Arc."
+                title="Verified on-chain"
+                description="Every transaction can be checked on ArcScan."
+                accent="purple"
               />
 
             </section>
 
           </div>
+
         </main>
+
       </div>
+
     </div>
   );
 }
@@ -363,10 +508,12 @@ export default function ActivityPage() {
 
 function ActivityTab({
   label,
+  count,
   active,
   onClick,
 }: {
   label: string;
+  count: number;
   active: boolean;
   onClick: () => void;
 }) {
@@ -374,18 +521,76 @@ function ActivityTab({
     <button
       type="button"
       onClick={onClick}
-      className={`relative py-4 text-[12px] ${
+      className={`relative flex items-center gap-2 px-2 py-4 text-[10px] transition sm:px-3 ${
         active
-          ? "font-semibold text-[#111111]"
-          : "font-medium text-[#999AA2] hover:text-[#55565D]"
+          ? "font-semibold text-[#11131A]"
+          : "font-medium text-[#949AA6] hover:text-[#555B67]"
       }`}
     >
+
       {label}
 
+      <span
+        className={`rounded-full px-1.5 py-0.5 text-[8px] ${
+          active
+            ? "bg-[#F0F1FF] text-[#5B61D6]"
+            : "bg-[#F5F6F8] text-[#9AA0AB]"
+        }`}
+      >
+        {count}
+      </span>
+
       {active && (
-        <span className="absolute bottom-[-1px] left-0 h-[2px] w-full bg-[#111111]" />
+        <span className="absolute bottom-[-1px] left-2 right-2 h-[2px] rounded-full bg-[#6366F1] sm:left-3 sm:right-3" />
       )}
+
     </button>
+  );
+}
+
+/* ================================================================
+   SUMMARY CARD
+   ================================================================ */
+
+function SummaryCard({
+  label,
+  value,
+  icon,
+  accent,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  accent: "blue" | "green" | "purple";
+}) {
+  const classes = {
+    blue: "bg-[#EAF2FF] text-[#2563EB]",
+    green: "bg-[#EAF8F2] text-[#16A36A]",
+    purple: "bg-[#F1EDFF] text-[#6D4AFF]",
+  };
+
+  return (
+    <div className="arc-card flex items-center justify-between p-4">
+
+      <div>
+
+        <p className="text-[9px] font-medium text-[#9298A4]">
+          {label}
+        </p>
+
+        <p className="tabular mt-1 text-[21px] font-semibold tracking-[-0.04em]">
+          {value}
+        </p>
+
+      </div>
+
+      <div
+        className={`flex h-9 w-9 items-center justify-center rounded-[12px] ${classes[accent]}`}
+      >
+        {icon}
+      </div>
+
+    </div>
   );
 }
 
@@ -396,37 +601,61 @@ function ActivityTab({
 function EmptyState({
   title,
   description,
+  connected,
 }: {
   title: string;
   description: string;
+  connected: boolean;
 }) {
   return (
-    <div className="flex min-h-[360px] flex-col items-center justify-center px-6 text-center">
+    <div className="flex min-h-[330px] flex-col items-center justify-center px-6 text-center">
 
-      <div className="flex h-[58px] w-[58px] items-center justify-center rounded-[18px] bg-[#F5F5F6] text-[#777880]">
+      <div className="relative flex h-16 w-16 items-center justify-center rounded-[20px] bg-[#F1F2F7] text-[#777D89]">
 
-        <ActivityIcon
-          size={23}
-          strokeWidth={1.5}
-        />
+        {connected ? (
+          <ActivityIcon
+            size={25}
+            strokeWidth={1.45}
+          />
+        ) : (
+          <Wallet
+            size={25}
+            strokeWidth={1.45}
+          />
+        )}
+
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(17,19,26,0.08)]">
+
+          {connected ? (
+            <Clock3
+              size={10}
+              className="text-[#8C929E]"
+            />
+          ) : (
+            <span className="h-1.5 w-1.5 rounded-full bg-[#6366F1]" />
+          )}
+
+        </span>
 
       </div>
 
-      <h2 className="mt-5 text-[16px] font-semibold">
+      <h2 className="mt-5 text-[15px] font-semibold tracking-[-0.02em]">
         {title}
       </h2>
 
-      <p className="mt-2 max-w-[320px] text-[11px] leading-5 text-[#8C8D95]">
+      <p className="mt-2 max-w-[340px] text-[10px] leading-5 text-[#8C929E]">
         {description}
       </p>
 
-      <div className="mt-5 flex items-center gap-2 rounded-full bg-[#F7F7F8] px-3.5 py-2 text-[9px] font-medium text-[#85868E]">
+      {connected && (
+        <div className="mt-5 flex items-center gap-2 rounded-full bg-[#F4F5F8] px-3.5 py-2 text-[8px] font-semibold text-[#858B97]">
 
-        <Clock3 size={12} />
+          <Clock3 size={11} />
 
-        Waiting for on-chain activity
+          Waiting for on-chain activity
 
-      </div>
+        </div>
+      )}
 
     </div>
   );
@@ -445,21 +674,29 @@ function ActivityRow({
     activity.type === "sent";
 
   return (
-    <div className="grid gap-3 border-b border-[#EEEEF1] px-5 py-4 sm:grid-cols-[1fr_150px_130px] sm:items-center">
+    <div className="group grid gap-4 border-b border-[#EEF0F4] px-5 py-4.5 transition last:border-b-0 hover:bg-[#FCFCFE] sm:grid-cols-[1fr_150px_150px] sm:items-center sm:px-6">
 
-      <div className="flex items-center gap-3">
+      {/* TRANSACTION */}
 
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F5F5F6]">
+      <div className="flex min-w-0 items-center gap-3">
+
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] ${
+            isSent
+              ? "bg-[#EAF2FF] text-[#2563EB]"
+              : "bg-[#EAF8F2] text-[#16A36A]"
+          }`}
+        >
 
           {isSent ? (
             <ArrowUpRight
-              size={15}
-              strokeWidth={1.7}
+              size={17}
+              strokeWidth={1.8}
             />
           ) : (
             <ArrowDownLeft
-              size={15}
-              strokeWidth={1.7}
+              size={17}
+              strokeWidth={1.8}
             />
           )}
 
@@ -467,13 +704,30 @@ function ActivityRow({
 
         <div className="min-w-0">
 
-          <p className="text-[11px] font-semibold">
-            {isSent
-              ? "USDC sent"
-              : "USDC received"}
-          </p>
+          <div className="flex items-center gap-2">
 
-          <p className="mt-1 truncate font-mono text-[9px] text-[#999AA2]">
+            <p className="text-[11px] font-semibold">
+              {isSent
+                ? "USDC sent"
+                : "USDC received"}
+            </p>
+
+            <span
+              className={`hidden rounded-full px-2 py-0.5 text-[7px] font-semibold sm:inline-flex ${
+                isSent
+                  ? "bg-[#EEF4FF] text-[#5D78B8]"
+                  : "bg-[#ECFAF4] text-[#4E9274]"
+              }`}
+            >
+              {isSent
+                ? "Outgoing"
+                : "Incoming"}
+            </span>
+
+          </div>
+
+          <p className="mt-1.5 truncate font-mono text-[8px] text-[#999FAA]">
+
             {isSent
               ? `To ${shortAddress(
                   activity.to
@@ -481,47 +735,68 @@ function ActivityRow({
               : `From ${shortAddress(
                   activity.from
                 )}`}
+
           </p>
 
         </div>
 
       </div>
 
-      <div>
+      {/* STATUS */}
 
-        <span className="rounded-full bg-[#F0FAF4] px-2.5 py-1 text-[8px] font-semibold text-[#31A66A]">
-          Confirmed
+      <div className="flex items-center gap-2">
+
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EAF8F2] text-[#16A36A]">
+
+          <CheckCircle2
+            size={12}
+            strokeWidth={2}
+          />
+
         </span>
+
+        <div>
+
+          <p className="text-[9px] font-semibold text-[#3F6954]">
+            Confirmed
+          </p>
+
+          <p className="mt-0.5 text-[7px] text-[#A0A6B0]">
+            On-chain
+          </p>
+
+        </div>
 
       </div>
 
-      <div className="text-left sm:text-right">
+      {/* AMOUNT */}
 
-        <p
-          className={`text-[11px] font-semibold ${
-            isSent
-              ? "text-[#D65A5A]"
-              : "text-[#31A66A]"
-          }`}
-        >
-          {isSent
-            ? "-"
-            : "+"}
-          {activity.amount} USDC
-        </p>
+      <div className="flex items-center justify-between gap-3 sm:justify-end">
 
-        <a
-          href={`https://testnet.arcscan.app/tx/${activity.hash}`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1 inline-flex items-center gap-1 text-[8px] text-[#999AA2] hover:text-[#55565D]"
-        >
-          View
+        <div className="text-left sm:text-right">
 
-          <ExternalLink
-            size={9}
-          />
-        </a>
+          <p
+            className={`tabular text-[11px] font-semibold ${
+              isSent
+                ? "text-[#D05B5B]"
+                : "text-[#16A36A]"
+            }`}
+          >
+            {isSent ? "-" : "+"}
+            {activity.amount} USDC
+          </p>
+
+          <a
+            href={`${EXPLORER_URL}/tx/${activity.hash}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-[8px] font-medium text-[#9AA0AB] transition hover:text-[#5B61D6]"
+          >
+            View transaction
+            <ExternalLink size={9} />
+          </a>
+
+        </div>
 
       </div>
 
@@ -537,23 +812,33 @@ function ActivityInfo({
   icon,
   title,
   description,
+  accent,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
+  accent: "blue" | "green" | "purple";
 }) {
-  return (
-    <div className="rounded-[17px] border border-[#E7E7EA] bg-white p-4">
+  const classes = {
+    blue: "bg-[#EAF2FF] text-[#2563EB]",
+    green: "bg-[#EAF8F2] text-[#16A36A]",
+    purple: "bg-[#F1EDFF] text-[#6D4AFF]",
+  };
 
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F5F5F6] text-[#55565D]">
+  return (
+    <div className="arc-card p-4 transition hover:-translate-y-[1px] hover:shadow-[0_8px_24px_rgba(17,19,26,0.045)]">
+
+      <div
+        className={`flex h-8 w-8 items-center justify-center rounded-[10px] ${classes[accent]}`}
+      >
         {icon}
       </div>
 
-      <h3 className="mt-3 text-[12px] font-semibold">
+      <h3 className="mt-3 text-[12px] font-semibold tracking-[-0.01em]">
         {title}
       </h3>
 
-      <p className="mt-1 text-[10px] leading-5 text-[#8C8D95]">
+      <p className="mt-1.5 text-[10px] leading-5 text-[#8C929E]">
         {description}
       </p>
 

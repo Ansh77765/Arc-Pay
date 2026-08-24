@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAccount } from "wagmi";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -11,10 +12,16 @@ import {
 import { TopBar } from "@/components/TopBar";
 import { Sidebar } from "@/components/Sidebar";
 import { CreatePaymentForm } from "@/components/CreatePaymentForm";
+import { UsernameModal } from "@/components/UsernameModal";
 
 export default function DashboardPage() {
   const [createPaymentOpen, setCreatePaymentOpen] =
     useState(false);
+
+  const [usernameOpen, setUsernameOpen] =
+    useState(false);
+
+  const { address } = useAccount();
 
   return (
     <div className="min-h-screen bg-white text-[#111111]">
@@ -46,20 +53,38 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setCreatePaymentOpen(true)
-                }
-                className="flex h-10 items-center justify-center gap-2 self-start rounded-full bg-[#111111] px-4 text-[11px] font-semibold text-white transition hover:bg-[#292929] sm:self-auto"
-              >
-                <Plus
-                  size={14}
-                  strokeWidth={1.8}
-                />
+              <div className="flex flex-wrap items-center gap-2">
 
-                Create payment
-              </button>
+                {/* RESERVE USERNAME */}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setUsernameOpen(true)
+                  }
+                  className="flex h-10 items-center justify-center rounded-full border border-[#E1E1E4] bg-white px-4 text-[11px] font-semibold text-[#33343A] transition hover:bg-[#F7F7F8]"
+                >
+                  Reserve username
+                </button>
+
+                {/* CREATE PAYMENT */}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCreatePaymentOpen(true)
+                  }
+                  className="flex h-10 items-center justify-center gap-2 rounded-full bg-[#111111] px-4 text-[11px] font-semibold text-white transition hover:bg-[#292929]"
+                >
+                  <Plus
+                    size={14}
+                    strokeWidth={1.8}
+                  />
+
+                  Create payment
+                </button>
+
+              </div>
             </div>
 
             {/* =====================================================
@@ -108,6 +133,7 @@ export default function DashboardPage() {
                     Wallet connected
                   </span>
                 </div>
+
               </div>
             </section>
 
@@ -124,6 +150,7 @@ export default function DashboardPage() {
                 }
                 className="group rounded-[20px] border border-[#E7E7EA] bg-white p-5 text-left transition hover:border-[#DADADF] hover:bg-[#FCFCFC]"
               >
+
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F5F6] text-[#55565D]">
                   <ArrowDownLeft
                     size={18}
@@ -147,6 +174,7 @@ export default function DashboardPage() {
                     →
                   </span>
                 </span>
+
               </button>
 
               <div className="rounded-[20px] border border-[#E7E7EA] bg-white p-5">
@@ -170,6 +198,7 @@ export default function DashboardPage() {
                 <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-medium text-[#A0A1A8]">
                   Open a payment link to pay
                 </span>
+
               </div>
             </div>
 
@@ -197,6 +226,7 @@ export default function DashboardPage() {
                 >
                   View all
                 </a>
+
               </div>
 
               <div className="flex min-h-[240px] flex-col items-center justify-center px-6 text-center">
@@ -225,12 +255,11 @@ export default function DashboardPage() {
                   }
                   className="mt-5 flex items-center gap-2 rounded-full bg-[#F5F5F6] px-4 py-2.5 text-[10px] font-semibold text-[#55565D] transition hover:bg-[#EEEEF0]"
                 >
-                  <Plus
-                    size={13}
-                  />
+                  <Plus size={13} />
 
                   Create payment
                 </button>
+
               </div>
             </section>
 
@@ -254,7 +283,9 @@ export default function DashboardPage() {
                 title="Non-custodial"
                 description="Your wallet and keys stay under your control."
               />
+
             </section>
+
           </div>
         </main>
       </div>
@@ -269,6 +300,19 @@ export default function DashboardPage() {
           setCreatePaymentOpen(false)
         }
       />
+
+      {/* =========================================================
+          USERNAME MODAL
+         ========================================================= */}
+
+      <UsernameModal
+        open={usernameOpen}
+        onClose={() =>
+          setUsernameOpen(false)
+        }
+        address={address}
+      />
+
     </div>
   );
 }
@@ -290,11 +334,13 @@ function InfoCard({
         <h3 className="text-[12px] font-semibold text-[#33343A]">
           {title}
         </h3>
+
       </div>
 
       <p className="mt-2 text-[10px] leading-5 text-[#8C8D95]">
         {description}
       </p>
+
     </div>
   );
 }

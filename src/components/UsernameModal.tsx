@@ -52,6 +52,24 @@ export function UsernameModal({
   }, [address]);
 
   /*
+   * READ THE USERNAME ALREADY REGISTERED
+   */
+
+  const {
+    data: registeredUsername,
+    isLoading: loadingRegisteredUsername,
+    refetch: refetchRegisteredUsername,
+  } = useReadContract({
+    address: USERNAME_REGISTRY_ADDRESS,
+    abi: usernameRegistryAbi,
+    functionName: "usernameOf",
+    args: [address as `0x${string}`],
+    query: {
+      enabled: open && !!address,
+    },
+  });
+
+  /*
    * LIVE USERNAME AVAILABILITY
    */
 
@@ -81,7 +99,7 @@ export function UsernameModal({
   } = useWriteContract();
 
   /*
-   * WAIT FOR BLOCKCHAIN CONFIRMATION
+   * WAIT FOR TRANSACTION
    */
 
   const {
@@ -92,16 +110,26 @@ export function UsernameModal({
   });
 
   /*
-   * RESET WHEN MODAL OPENS/CLOSES
+   * LOAD EXISTING USERNAME INTO THE CARD
    */
 
   useEffect(() => {
-    if (!open) {
-      setUsername("");
-      setReserved(false);
-      setCopied(false);
+    if (!open || !address) {
+      return;
     }
-  }, [open]);
+
+    if (
+      typeof registeredUsername === "string" &&
+      registeredUsername.length > 0
+    ) {
+      setUsername(registeredUsername);
+      setReserved(true);
+    }
+  }, [
+    open,
+    address,
+    registeredUsername,
+  ]);
 
   /*
    * REGISTRATION SUCCESS
@@ -113,11 +141,28 @@ export function UsernameModal({
     }
 
     setReserved(true);
+
     refetchAvailability();
+    refetchRegisteredUsername();
   }, [
     registrationSuccess,
     refetchAvailability,
+    refetchRegisteredUsername,
   ]);
+
+  /*
+   * RESET ONLY WHEN MODAL IS CLOSED
+   */
+
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+
+    setUsername("");
+    setReserved(false);
+    setCopied(false);
+  }, [open]);
 
   /*
    * USERNAME INPUT
@@ -187,10 +232,7 @@ export function UsernameModal({
       return;
     }
 
-    setUsername("");
-    setReserved(false);
     setCopied(false);
-
     onClose();
   }
 
@@ -200,6 +242,9 @@ export function UsernameModal({
 
   const busy =
     isRegistering || isConfirming;
+
+  const displayedUsername =
+    username || "username";
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center px-4">
@@ -252,13 +297,15 @@ export function UsernameModal({
               </p>
 
               <h2 className="mt-1 text-[21px] font-semibold tracking-[-0.04em] text-[#111111]">
-                Reserve your username
+                {registeredUsername
+                  ? "Your Arc Pay username"
+                  : "Reserve your username"}
               </h2>
 
               <p className="mt-1.5 max-w-[360px] text-[10px] leading-5 text-[#85868E]">
-                Create a simple payment identity
-                that people can use instead of
-                your wallet address.
+                {registeredUsername
+                  ? "This username is linked to your wallet."
+                  : "Create a simple payment identity that people can use instead of your wallet address."}
               </p>
 
             </div>
@@ -319,7 +366,7 @@ export function UsernameModal({
               </p>
 
               <p className="mt-1 font-mono text-[29px] font-semibold tracking-[-0.05em] text-[#17181B] sm:text-[34px]">
-                @{normalized || "username"}
+                @{displayedUsername}
               </p>
 
             </div>
@@ -355,117 +402,152 @@ export function UsernameModal({
             </div>
           </div>
 
-          {/* INPUT */}
+          {/* EXISTING USERNAME */}
 
-          <div className="mt-7">
-
-            <div className="mb-2 flex items-center justify-between">
-
-              <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#777880]">
-                Choose username
-              </label>
-
-              <span className="text-[9px] text-[#A0A1A8]">
-                3–20 characters
-              </span>
-
-            </div>
-
-            <div
-              className={`flex h-[54px] items-center rounded-[15px] border bg-white transition ${
-                available === false
-                  ? "border-[#E7CACA]"
-                  : available === true
-                  ? "border-[#CDE6D7]"
-                  : "border-[#E2E2E5]"
-              }`}
-            >
-
-              <span className="pl-4 text-[17px] font-medium text-[#85868E]">
-                @
-              </span>
-
-              <input
-                value={username}
-                onChange={(e) =>
-                  handleUsernameChange(
-                    e.target.value
-                  )
-                }
-                placeholder="yourname"
-                autoFocus
-                autoComplete="off"
-                spellCheck={false}
-                disabled={busy}
-                className="min-w-0 flex-1 bg-transparent px-2 text-[15px] font-medium tracking-[-0.02em] text-[#111111] outline-none placeholder:text-[#C4C5CA]"
+          {loadingRegisteredUsername ? (
+            <div className="mt-5 flex items-center justify-center gap-2 text-[9px] text-[#999AA2]">
+              <Loader2
+                size={12}
+                className="animate-spin"
               />
+              Loading your username…
+            </div>
+          ) : registeredUsername ? (
+            <div className="mt-5 rounded-[15px] border border-[#CDE6D7] bg-[#F4FBF7] px-4 py-3.5">
 
-              <div className="mr-3">
+              <div className="flex items-center gap-2">
 
-                {checking && (
-                  <Loader2
-                    size={17}
-                    className="animate-spin text-[#999AA2]"
-                  />
-                )}
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E2F5E9] text-[#31A66A]">
+                  <Check size={14} />
+                </div>
 
-                {!checking &&
-                  available === true && (
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
-                      <Check
-                        size={14}
-                        strokeWidth={2.2}
-                      />
-                    </div>
-                  )}
+                <div>
 
-                {!checking &&
-                  available === false && (
-                    <CircleAlert
-                      size={18}
-                      className="text-[#D65A5A]"
-                    />
-                  )}
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#31A66A]">
+                    Username registered
+                  </p>
+
+                  <p className="mt-0.5 font-mono text-[11px] font-semibold text-[#33343A]">
+                    @{registeredUsername}
+                  </p>
+
+                </div>
 
               </div>
             </div>
+          ) : null}
 
-            {/* VALIDATION */}
+          {/* INPUT — ONLY SHOW IF NO USERNAME */}
 
-            {!valid &&
-              username.length > 0 && (
-                <p className="mt-2 text-[9px] text-[#B76A6A]">
-                  Use only lowercase letters
-                  and numbers, 3–20 characters.
-                </p>
-              )}
+          {!registeredUsername && (
+            <div className="mt-7">
 
-            {valid &&
-              checking && (
-                <p className="mt-2 text-[9px] text-[#999AA2]">
-                  Checking availability…
-                </p>
-              )}
+              <div className="mb-2 flex items-center justify-between">
 
-            {valid &&
-              !checking &&
-              available === true && (
-                <p className="mt-2 flex items-center gap-1.5 text-[9px] font-medium text-[#31A66A]">
-                  <Check size={11} />
-                  {normalized} is available
-                </p>
-              )}
+                <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#777880]">
+                  Choose username
+                </label>
 
-            {valid &&
-              !checking &&
-              available === false && (
-                <p className="mt-2 flex items-center gap-1.5 text-[9px] font-medium text-[#D65A5A]">
-                  <CircleAlert size={11} />
-                  {normalized} is already taken
-                </p>
-              )}
+                <span className="text-[9px] text-[#A0A1A8]">
+                  3–20 characters
+                </span>
 
-          </div>
+              </div>
+
+              <div
+                className={`flex h-[54px] items-center rounded-[15px] border bg-white transition ${
+                  available === false
+                    ? "border-[#E7CACA]"
+                    : available === true
+                    ? "border-[#CDE6D7]"
+                    : "border-[#E2E2E5]"
+                }`}
+              >
+
+                <span className="pl-4 text-[17px] font-medium text-[#85868E]">
+                  @
+                </span>
+
+                <input
+                  value={username}
+                  onChange={(e) =>
+                    handleUsernameChange(
+                      e.target.value
+                    )
+                  }
+                  placeholder="yourname"
+                  autoFocus
+                  autoComplete="off"
+                  spellCheck={false}
+                  disabled={busy}
+                  className="min-w-0 flex-1 bg-transparent px-2 text-[15px] font-medium tracking-[-0.02em] text-[#111111] outline-none placeholder:text-[#C4C5CA]"
+                />
+
+                <div className="mr-3">
+
+                  {checking && (
+                    <Loader2
+                      size={17}
+                      className="animate-spin text-[#999AA2]"
+                    />
+                  )}
+
+                  {!checking &&
+                    available === true && (
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
+                        <Check
+                          size={14}
+                          strokeWidth={2.2}
+                        />
+                      </div>
+                    )}
+
+                  {!checking &&
+                    available === false && (
+                      <CircleAlert
+                        size={18}
+                        className="text-[#D65A5A]"
+                      />
+                    )}
+
+                </div>
+              </div>
+
+              {!valid &&
+                username.length > 0 && (
+                  <p className="mt-2 text-[9px] text-[#B76A6A]">
+                    Use only lowercase letters
+                    and numbers, 3–20 characters.
+                  </p>
+                )}
+
+              {valid &&
+                checking && (
+                  <p className="mt-2 text-[9px] text-[#999AA2]">
+                    Checking availability…
+                  </p>
+                )}
+
+              {valid &&
+                !checking &&
+                available === true && (
+                  <p className="mt-2 flex items-center gap-1.5 text-[9px] font-medium text-[#31A66A]">
+                    <Check size={11} />
+                    {normalized} is available
+                  </p>
+                )}
+
+              {valid &&
+                !checking &&
+                available === false && (
+                  <p className="mt-2 flex items-center gap-1.5 text-[9px] font-medium text-[#D65A5A]">
+                    <CircleAlert size={11} />
+                    {normalized} is already taken
+                  </p>
+                )}
+
+            </div>
+          )}
 
           {/* WALLET */}
 
@@ -544,45 +626,48 @@ export function UsernameModal({
 
           {/* RESERVE */}
 
-          <button
-            type="button"
-            onClick={handleReserve}
-            disabled={
-              !valid ||
-              available !== true ||
-              checking ||
-              busy ||
-              reserved
-            }
-            className="mt-5 flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#111111] text-[11px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
-          >
+          {!registeredUsername && (
+            <button
+              type="button"
+              onClick={handleReserve}
+              disabled={
+                !valid ||
+                available !== true ||
+                checking ||
+                busy ||
+                reserved
+              }
+              className="mt-5 flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#111111] text-[11px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
+            >
 
-            {reserved ? (
-              <>
-                <Check size={14} />
-                Username reserved
-              </>
-            ) : busy ? (
-              <>
-                <Loader2
-                  size={14}
-                  className="animate-spin"
-                />
-                {isRegistering
-                  ? "Confirm in wallet…"
-                  : "Registering…"}
-              </>
-            ) : (
-              <>
-                Reserve @{normalized || "username"}
+              {reserved ? (
+                <>
+                  <Check size={14} />
+                  Username reserved
+                </>
+              ) : busy ? (
+                <>
+                  <Loader2
+                    size={14}
+                    className="animate-spin"
+                  />
 
-                <span className="text-white/45">
-                  →
-                </span>
-              </>
-            )}
+                  {isRegistering
+                    ? "Confirm in wallet…"
+                    : "Registering…"}
+                </>
+              ) : (
+                <>
+                  Reserve @{normalized || "username"}
 
-          </button>
+                  <span className="text-white/45">
+                    →
+                  </span>
+                </>
+              )}
+
+            </button>
+          )}
 
           {/* FOOTNOTE */}
 

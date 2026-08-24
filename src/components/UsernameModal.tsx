@@ -41,19 +41,19 @@ export function UsernameModal({
     .replace(/[^a-z0-9]/g, "")
     .slice(0, 20);
 
-  const valid = USERNAME_REGEX.test(normalized);
+  const valid =
+    USERNAME_REGEX.test(normalized);
 
   const shortAddress = useMemo(() => {
     if (!address) {
       return "Wallet not connected";
     }
 
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    return `${address.slice(
+      0,
+      6
+    )}...${address.slice(-4)}`;
   }, [address]);
-
-  /*
-   * READ THE USERNAME ALREADY REGISTERED
-   */
 
   const {
     data: registeredUsername,
@@ -63,15 +63,14 @@ export function UsernameModal({
     address: USERNAME_REGISTRY_ADDRESS,
     abi: usernameRegistryAbi,
     functionName: "usernameOf",
-    args: [address as `0x${string}`],
+    args: address
+      ? [address as `0x${string}`]
+      : undefined,
     query: {
-      enabled: open && !!address,
+      enabled:
+        open && !!address,
     },
   });
-
-  /*
-   * LIVE USERNAME AVAILABILITY
-   */
 
   const {
     data: available,
@@ -83,13 +82,10 @@ export function UsernameModal({
     functionName: "isUsernameAvailable",
     args: [normalized],
     query: {
-      enabled: open && valid,
+      enabled:
+        open && valid,
     },
   });
-
-  /*
-   * REGISTER USERNAME
-   */
 
   const {
     writeContract,
@@ -98,10 +94,6 @@ export function UsernameModal({
     error: registrationError,
   } = useWriteContract();
 
-  /*
-   * WAIT FOR TRANSACTION
-   */
-
   const {
     isLoading: isConfirming,
     isSuccess: registrationSuccess,
@@ -109,20 +101,19 @@ export function UsernameModal({
     hash: registrationHash,
   });
 
-  /*
-   * LOAD EXISTING USERNAME INTO THE CARD
-   */
-
   useEffect(() => {
     if (!open || !address) {
       return;
     }
 
     if (
-      typeof registeredUsername === "string" &&
+      typeof registeredUsername ===
+        "string" &&
       registeredUsername.length > 0
     ) {
-      setUsername(registeredUsername);
+      setUsername(
+        registeredUsername
+      );
       setReserved(true);
     }
   }, [
@@ -130,10 +121,6 @@ export function UsernameModal({
     address,
     registeredUsername,
   ]);
-
-  /*
-   * REGISTRATION SUCCESS
-   */
 
   useEffect(() => {
     if (!registrationSuccess) {
@@ -150,10 +137,6 @@ export function UsernameModal({
     refetchRegisteredUsername,
   ]);
 
-  /*
-   * RESET ONLY WHEN MODAL IS CLOSED
-   */
-
   useEffect(() => {
     if (open) {
       return;
@@ -164,11 +147,9 @@ export function UsernameModal({
     setCopied(false);
   }, [open]);
 
-  /*
-   * USERNAME INPUT
-   */
-
-  function handleUsernameChange(value: string) {
+  function handleUsernameChange(
+    value: string
+  ) {
     const cleaned = value
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "")
@@ -177,10 +158,6 @@ export function UsernameModal({
     setUsername(cleaned);
     setReserved(false);
   }
-
-  /*
-   * REGISTER ON ARC
-   */
 
   function handleReserve() {
     if (
@@ -194,16 +171,14 @@ export function UsernameModal({
     }
 
     writeContract({
-      address: USERNAME_REGISTRY_ADDRESS,
+      address:
+        USERNAME_REGISTRY_ADDRESS,
       abi: usernameRegistryAbi,
-      functionName: "registerUsername",
+      functionName:
+        "registerUsername",
       args: [normalized],
     });
   }
-
-  /*
-   * COPY WALLET ADDRESS
-   */
 
   async function copyAddress() {
     if (!address) {
@@ -211,7 +186,9 @@ export function UsernameModal({
     }
 
     try {
-      await navigator.clipboard.writeText(address);
+      await navigator.clipboard.writeText(
+        address
+      );
 
       setCopied(true);
 
@@ -223,12 +200,11 @@ export function UsernameModal({
     }
   }
 
-  /*
-   * CLOSE
-   */
-
   function handleClose() {
-    if (isRegistering || isConfirming) {
+    if (
+      isRegistering ||
+      isConfirming
+    ) {
       return;
     }
 
@@ -241,7 +217,8 @@ export function UsernameModal({
   }
 
   const busy =
-    isRegistering || isConfirming;
+    isRegistering ||
+    isConfirming;
 
   const displayedUsername =
     username || "username";
@@ -255,12 +232,12 @@ export function UsernameModal({
         type="button"
         aria-label="Close username modal"
         onClick={handleClose}
-        className="absolute inset-0 bg-black/[0.16] backdrop-blur-[5px]"
+        className="absolute inset-0 bg-[#0C1220]/35 backdrop-blur-md"
       />
 
       {/* MODAL */}
 
-      <div className="relative z-10 w-full max-w-[520px] overflow-hidden rounded-[28px] border border-[#E3E3E6] bg-white shadow-[0_35px_100px_-35px_rgba(0,0,0,.28)]">
+      <div className="relative z-10 w-full max-w-[540px] overflow-hidden rounded-[28px] border border-[#E1E4EA] bg-[#FBFBFD] shadow-[0_35px_100px_-35px_rgba(17,19,26,0.30)]">
 
         {/* CLOSE */}
 
@@ -269,7 +246,7 @@ export function UsernameModal({
           aria-label="Close"
           onClick={handleClose}
           disabled={busy}
-          className="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E5E8] bg-white text-[#777880] transition hover:bg-[#F5F5F6] hover:text-[#111111] disabled:opacity-40"
+          className="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[#E2E5EA] bg-white text-[#777D89] shadow-[0_1px_2px_rgba(17,19,26,0.04)] transition hover:bg-[#F4F5F8] hover:text-[#11131A] disabled:opacity-40"
         >
           <X
             size={16}
@@ -279,93 +256,100 @@ export function UsernameModal({
 
         {/* HEADER */}
 
-        <div className="px-7 pb-5 pt-7 sm:px-8">
+        <div className="relative overflow-hidden px-7 pb-6 pt-7 sm:px-8">
 
-          <div className="flex items-start gap-3">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#6366F1]/[0.08] blur-[65px]" />
 
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-[#111111] text-white">
+          <div className="relative flex items-start gap-3.5">
+
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#2563EB] to-[#6366F1] text-white shadow-[0_8px_22px_rgba(79,70,229,0.18)]">
               <Sparkles
                 size={18}
-                strokeWidth={1.5}
+                strokeWidth={1.6}
               />
             </div>
 
-            <div>
+            <div className="pr-8">
 
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#8A8B93]">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6366F1]">
                 Arc Pay identity
               </p>
 
-              <h2 className="mt-1 text-[21px] font-semibold tracking-[-0.04em] text-[#111111]">
+              <h2 className="mt-1.5 text-[22px] font-semibold tracking-[-0.045em] text-[#11131A]">
                 {registeredUsername
                   ? "Your Arc Pay username"
-                  : "Reserve your username"}
+                  : "Choose your username"}
               </h2>
 
-              <p className="mt-1.5 max-w-[360px] text-[10px] leading-5 text-[#85868E]">
+              <p className="mt-2 max-w-[370px] text-[10px] leading-5 text-[#858B97]">
                 {registeredUsername
-                  ? "This username is linked to your wallet."
-                  : "Create a simple payment identity that people can use instead of your wallet address."}
+                  ? "Your username is permanently linked to this wallet."
+                  : "Give people an easier way to pay you without sharing your wallet address."}
               </p>
 
             </div>
+
           </div>
+
         </div>
 
-        <div className="border-t border-[#EEEEF1]" />
+        <div className="border-t border-[#EEF0F4]" />
 
         {/* CONTENT */}
 
-        <div className="px-7 py-7 sm:px-8">
+        <div className="px-6 py-6 sm:px-8 sm:py-7">
 
           {/* IDENTITY CARD */}
 
-          <div className="relative mx-auto aspect-[1.62/1] w-full max-w-[430px] overflow-hidden rounded-[22px] border border-[#D9DCE2] bg-gradient-to-br from-[#F8F9FB] via-[#E7EAF0] to-[#D6DAE3] shadow-[0_18px_45px_-28px_rgba(0,0,0,.35)]">
+          <div className="relative mx-auto aspect-[1.62/1] w-full max-w-[430px] overflow-hidden rounded-[23px] bg-[#0C1220] shadow-[0_18px_45px_-25px_rgba(17,19,26,0.30)]">
 
-            <div className="pointer-events-none absolute right-[-20px] top-[-15px] h-[170px] w-[260px] opacity-35">
+            <div className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full bg-[#6366F1]/25 blur-[65px]" />
+
+            <div className="pointer-events-none absolute -bottom-24 left-[-40px] h-64 w-64 rounded-full bg-[#2563EB]/20 blur-[70px]" />
+
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-[58%] opacity-20">
               <PixelPattern />
             </div>
 
-            <div className="pointer-events-none absolute bottom-[-55px] left-[-25px] h-[150px] w-[250px] rotate-[8deg] opacity-25">
-              <PixelPattern />
-            </div>
+            {/* TOP */}
 
-            {/* BRAND */}
+            <div className="absolute left-6 right-6 top-6 flex items-start justify-between">
 
-            <div className="absolute left-6 top-6 flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5">
 
-              <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#111111] text-[11px] font-bold text-white">
-                A
+                <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-white text-[11px] font-bold text-[#11131A]">
+                  A
+                </div>
+
+                <div>
+
+                  <p className="text-[10px] font-bold tracking-[0.16em] text-white">
+                    ARC PAY
+                  </p>
+
+                  <p className="mt-0.5 text-[6px] font-medium uppercase tracking-[0.2em] text-white/45">
+                    Payment identity
+                  </p>
+
+                </div>
+
               </div>
 
-              <div>
-
-                <p className="text-[11px] font-bold tracking-[0.16em] text-[#34363C]">
-                  ARC PAY
-                </p>
-
-                <p className="mt-0.5 text-[6px] font-medium uppercase tracking-[0.2em] text-[#777A83]">
-                  Payment identity
-                </p>
-
+              <div className="rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[7px] font-semibold uppercase tracking-[0.1em] text-white/60 backdrop-blur">
+                Arc Testnet
               </div>
+
             </div>
 
-            {/* TESTNET */}
+            {/* CENTER */}
 
-            <div className="absolute right-6 top-6 rounded-full border border-[#C8CBD2] bg-white/50 px-2.5 py-1 text-[7px] font-semibold uppercase tracking-[0.1em] text-[#676A73] backdrop-blur">
-              Arc Testnet
-            </div>
+            <div className="absolute left-6 right-6 top-[43%]">
 
-            {/* USERNAME */}
-
-            <div className="absolute left-6 right-6 top-[42%]">
-
-              <p className="text-[7px] font-semibold uppercase tracking-[0.18em] text-[#777A83]">
+              <p className="text-[7px] font-semibold uppercase tracking-[0.18em] text-white/40">
                 Your payment identity
               </p>
 
-              <p className="mt-1 font-mono text-[29px] font-semibold tracking-[-0.05em] text-[#17181B] sm:text-[34px]">
+              <p className="mt-1 font-mono text-[29px] font-semibold tracking-[-0.055em] text-white sm:text-[35px]">
                 @{displayedUsername}
               </p>
 
@@ -377,11 +361,11 @@ export function UsernameModal({
 
               <div>
 
-                <p className="text-[6px] font-semibold uppercase tracking-[0.15em] text-[#777A83]">
+                <p className="text-[6px] font-semibold uppercase tracking-[0.15em] text-white/35">
                   Wallet
                 </p>
 
-                <p className="mt-1 font-mono text-[8px] font-medium text-[#44464D]">
+                <p className="mt-1 font-mono text-[8px] font-medium text-white/65">
                   {shortAddress}
                 </p>
 
@@ -389,82 +373,101 @@ export function UsernameModal({
 
               <div className="text-right">
 
-                <p className="text-[6px] font-semibold uppercase tracking-[0.15em] text-[#777A83]">
-                  ARC
-                </p>
+                <div className="flex items-center justify-end gap-1.5">
 
-                <p className="mt-1 text-[8px] font-medium text-[#555860]">
-                  PAY
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#34D399]" />
+
+                  <span className="text-[7px] font-semibold text-white/60">
+                    VERIFIED
+                  </span>
+
+                </div>
+
+                <p className="mt-1 text-[7px] text-white/35">
+                  Arc Pay identity
                 </p>
 
               </div>
 
             </div>
+
           </div>
 
           {/* EXISTING USERNAME */}
 
           {loadingRegisteredUsername ? (
-            <div className="mt-5 flex items-center justify-center gap-2 text-[9px] text-[#999AA2]">
+
+            <div className="mt-5 flex items-center justify-center gap-2 text-[9px] text-[#9298A4]">
+
               <Loader2
                 size={12}
                 className="animate-spin"
               />
+
               Loading your username…
+
             </div>
+
           ) : registeredUsername ? (
-            <div className="mt-5 rounded-[15px] border border-[#CDE6D7] bg-[#F4FBF7] px-4 py-3.5">
 
-              <div className="flex items-center gap-2">
+            <div className="mt-5 flex items-center justify-between gap-4 rounded-[15px] border border-[#CDE6D7] bg-[#F2FBF6] px-4 py-3.5">
 
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E2F5E9] text-[#31A66A]">
+              <div className="flex items-center gap-2.5">
+
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E0F5E9] text-[#16A36A]">
                   <Check size={14} />
                 </div>
 
                 <div>
 
-                  <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#31A66A]">
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#16A36A]">
                     Username registered
                   </p>
 
-                  <p className="mt-0.5 font-mono text-[11px] font-semibold text-[#33343A]">
+                  <p className="mt-0.5 font-mono text-[11px] font-semibold text-[#333740]">
                     @{registeredUsername}
                   </p>
 
                 </div>
 
               </div>
+
+              <span className="rounded-full bg-white px-2.5 py-1 text-[8px] font-semibold text-[#4F8B6A] shadow-[0_1px_3px_rgba(22,163,106,0.08)]">
+                Active
+              </span>
+
             </div>
+
           ) : null}
 
-          {/* INPUT — ONLY SHOW IF NO USERNAME */}
+          {/* INPUT */}
 
           {!registeredUsername && (
             <div className="mt-7">
 
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2.5 flex items-center justify-between">
 
-                <label className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#777880]">
+                <label className="text-[10px] font-semibold text-[#444952]">
                   Choose username
                 </label>
 
-                <span className="text-[9px] text-[#A0A1A8]">
+                <span className="text-[9px] text-[#9AA0AB]">
                   3–20 characters
                 </span>
 
               </div>
 
               <div
-                className={`flex h-[54px] items-center rounded-[15px] border bg-white transition ${
+                className={`arc-input flex h-[58px] items-center ${
                   available === false
-                    ? "border-[#E7CACA]"
+                    ? "!border-[#E4BDBD]"
                     : available === true
-                    ? "border-[#CDE6D7]"
-                    : "border-[#E2E2E5]"
+                    ? "!border-[#BBDDC9]"
+                    : ""
                 }`}
               >
 
-                <span className="pl-4 text-[17px] font-medium text-[#85868E]">
+                <span className="pl-4 text-[18px] font-semibold text-[#9298A4]">
                   @
                 </span>
 
@@ -480,50 +483,59 @@ export function UsernameModal({
                   autoComplete="off"
                   spellCheck={false}
                   disabled={busy}
-                  className="min-w-0 flex-1 bg-transparent px-2 text-[15px] font-medium tracking-[-0.02em] text-[#111111] outline-none placeholder:text-[#C4C5CA]"
+                  className="min-w-0 flex-1 bg-transparent px-2 text-[15px] font-semibold tracking-[-0.025em] text-[#11131A] outline-none placeholder:text-[#C2C6CE]"
                 />
 
                 <div className="mr-3">
 
                   {checking && (
-                    <Loader2
-                      size={17}
-                      className="animate-spin text-[#999AA2]"
-                    />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F3F4F8]">
+
+                      <Loader2
+                        size={15}
+                        className="animate-spin text-[#777D89]"
+                      />
+
+                    </div>
                   )}
 
                   {!checking &&
                     available === true && (
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF8F2] text-[#16A36A]">
+
                         <Check
-                          size={14}
+                          size={15}
                           strokeWidth={2.2}
                         />
+
                       </div>
                     )}
 
                   {!checking &&
                     available === false && (
-                      <CircleAlert
-                        size={18}
-                        className="text-[#D65A5A]"
-                      />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFF1F1] text-[#D05B5B]">
+
+                        <CircleAlert
+                          size={15}
+                        />
+
+                      </div>
                     )}
 
                 </div>
+
               </div>
 
               {!valid &&
                 username.length > 0 && (
-                  <p className="mt-2 text-[9px] text-[#B76A6A]">
-                    Use only lowercase letters
-                    and numbers, 3–20 characters.
+                  <p className="mt-2 text-[9px] font-medium text-[#B76A6A]">
+                    Use only lowercase letters and numbers, 3–20 characters.
                   </p>
                 )}
 
               {valid &&
                 checking && (
-                  <p className="mt-2 text-[9px] text-[#999AA2]">
+                  <p className="mt-2 text-[9px] text-[#9298A4]">
                     Checking availability…
                   </p>
                 )}
@@ -531,18 +543,24 @@ export function UsernameModal({
               {valid &&
                 !checking &&
                 available === true && (
-                  <p className="mt-2 flex items-center gap-1.5 text-[9px] font-medium text-[#31A66A]">
+                  <p className="mt-2 flex items-center gap-1.5 text-[9px] font-semibold text-[#16A36A]">
+
                     <Check size={11} />
-                    {normalized} is available
+
+                    @{normalized} is available
+
                   </p>
                 )}
 
               {valid &&
                 !checking &&
                 available === false && (
-                  <p className="mt-2 flex items-center gap-1.5 text-[9px] font-medium text-[#D65A5A]">
+                  <p className="mt-2 flex items-center gap-1.5 text-[9px] font-semibold text-[#D05B5B]">
+
                     <CircleAlert size={11} />
-                    {normalized} is already taken
+
+                    @{normalized} is already taken
+
                   </p>
                 )}
 
@@ -551,17 +569,23 @@ export function UsernameModal({
 
           {/* WALLET */}
 
-          <div className="mt-5 rounded-[15px] border border-[#E7E7EA] bg-[#F7F7F8] px-4 py-3.5">
+          <div className="mt-5 rounded-[15px] border border-[#E7E9EF] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(17,19,26,0.02)]">
 
             <div className="flex items-center justify-between gap-3">
 
               <div className="min-w-0">
 
-                <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#9A9BA2]">
-                  Connected wallet
-                </p>
+                <div className="flex items-center gap-1.5">
 
-                <p className="mt-1 truncate font-mono text-[10px] text-[#55565D]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#16A36A]" />
+
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#9AA0AB]">
+                    Connected wallet
+                  </p>
+
+                </div>
+
+                <p className="mt-1 truncate font-mono text-[10px] text-[#555B67]">
                   {shortAddress}
                 </p>
 
@@ -571,8 +595,9 @@ export function UsernameModal({
                 <button
                   type="button"
                   onClick={copyAddress}
-                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-[9px] border border-[#E1E1E4] bg-white px-2.5 text-[8px] font-medium text-[#66676E] transition hover:bg-[#F2F2F3]"
+                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-[9px] border border-[#E1E4EA] bg-[#FBFBFD] px-2.5 text-[8px] font-semibold text-[#666C78] transition hover:border-[#D7DAE2] hover:bg-[#F3F4F7]"
                 >
+
                   {copied ? (
                     <Check size={12} />
                   ) : (
@@ -582,45 +607,56 @@ export function UsernameModal({
                   {copied
                     ? "Copied"
                     : "Copy"}
+
                 </button>
               )}
 
             </div>
+
           </div>
 
           {/* ERROR */}
 
           {registrationError && (
-            <div className="mt-4 rounded-[12px] border border-[#E8CCCC] bg-[#FFF7F7] px-4 py-3">
+            <div className="mt-4 flex gap-2.5 rounded-[13px] border border-[#E7CACA] bg-[#FFF6F6] px-4 py-3.5">
+
+              <CircleAlert
+                size={14}
+                className="mt-0.5 shrink-0 text-[#D05B5B]"
+              />
 
               <p className="text-[9px] font-medium leading-4 text-[#B65353]">
-                Transaction failed or was rejected.
-                If the username was just taken,
-                choose another one.
+                Transaction failed or was rejected. If the username was just taken, choose another one.
               </p>
 
             </div>
           )}
 
-          {/* TRANSACTION STATUS */}
+          {/* STATUS */}
 
           {isRegistering && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-[9px] text-[#777880]">
+            <div className="mt-4 flex items-center justify-center gap-2 rounded-full bg-[#F1F2FF] py-2.5 text-[9px] font-medium text-[#5B61D6]">
+
               <Loader2
                 size={12}
                 className="animate-spin"
               />
+
               Confirm the transaction in your wallet…
+
             </div>
           )}
 
           {isConfirming && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-[9px] text-[#777880]">
+            <div className="mt-4 flex items-center justify-center gap-2 rounded-full bg-[#F1F2FF] py-2.5 text-[9px] font-medium text-[#5B61D6]">
+
               <Loader2
                 size={12}
                 className="animate-spin"
               />
+
               Confirming registration on Arc…
+
             </div>
           )}
 
@@ -637,7 +673,7 @@ export function UsernameModal({
                 busy ||
                 reserved
               }
-              className="mt-5 flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#111111] text-[11px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
+              className="arc-accent mt-5 flex h-[53px] w-full items-center justify-center gap-2 rounded-[15px] text-[11px] font-semibold disabled:bg-[#E8EAF0] disabled:text-[#A1A6B0] disabled:shadow-none"
             >
 
               {reserved ? (
@@ -673,18 +709,18 @@ export function UsernameModal({
 
           <div className="mt-4 flex items-center justify-center gap-2 text-center">
 
-            <div className="flex h-4 w-4 items-center justify-center rounded-full border border-[#DADBE0] text-[8px] text-[#777880]">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EEF0F4] text-[8px] font-bold text-[#777D89]">
               ✓
             </div>
 
-            <p className="text-[8px] text-[#999AA2]">
-              Your wallet controls this identity.
-              Arc Pay never holds your keys.
+            <p className="text-[8px] leading-4 text-[#999FAA]">
+              Your wallet controls this identity. Arc Pay never holds your keys.
             </p>
 
           </div>
 
         </div>
+
       </div>
     </div>
   );
@@ -698,8 +734,11 @@ function PixelPattern() {
   const pixels = Array.from(
     { length: 90 },
     (_, index) => {
-      const row = Math.floor(index / 15);
-      const column = index % 15;
+      const row =
+        Math.floor(index / 15);
+
+      const column =
+        index % 15;
 
       const distance =
         Math.abs(
@@ -727,18 +766,22 @@ function PixelPattern() {
       className="h-full w-full"
       preserveAspectRatio="none"
     >
-      {pixels.map((pixel, index) => (
-        <rect
-          key={index}
-          x={pixel.x}
-          y={pixel.y}
-          width="6"
-          height="6"
-          rx="1"
-          fill="#7E8490"
-          opacity={pixel.opacity}
-        />
-      ))}
+      {pixels.map(
+        (pixel, index) => (
+          <rect
+            key={index}
+            x={pixel.x}
+            y={pixel.y}
+            width="6"
+            height="6"
+            rx="1"
+            fill="#A5B4FC"
+            opacity={
+              pixel.opacity
+            }
+          />
+        )
+      )}
     </svg>
   );
 }

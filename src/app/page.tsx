@@ -20,7 +20,11 @@ import {
   USDC_ADDRESS,
   USDC_DECIMALS,
   EXPLORER_URL,
+  USERNAME_REGISTRY_ADDRESS,
 } from "@/lib/config";
+
+import { arcTestnet } from "@/lib/chain";
+import { usernameRegistryAbi } from "@/lib/usernameRegistryAbi";
 
 import {
   getWalletActivity,
@@ -63,6 +67,32 @@ export default function DashboardPage() {
   const { address, isConnected } =
     useAccount();
 
+  /* ============================================================
+     USERNAME
+     ============================================================ */
+
+  const {
+    data: registeredUsername,
+    refetch: refetchUsername,
+  } = useReadContract({
+    address: USERNAME_REGISTRY_ADDRESS,
+    abi: usernameRegistryAbi,
+    functionName: "usernameOf",
+    args: address
+      ? [address]
+      : undefined,
+    chainId: arcTestnet.id,
+    query: {
+      enabled:
+        isConnected &&
+        !!address,
+    },
+  });
+
+  /* ============================================================
+     BALANCE
+     ============================================================ */
+
   const {
     data: balance,
     isLoading: balanceLoading,
@@ -87,6 +117,10 @@ export default function DashboardPage() {
           10 ** USDC_DECIMALS
         ).toFixed(2)
       : "0.00";
+
+  /* ============================================================
+     ACTIVITY
+     ============================================================ */
 
   useEffect(() => {
     let cancelled = false;
@@ -170,6 +204,10 @@ export default function DashboardPage() {
 
               <div className="flex flex-wrap items-center gap-2">
 
+                {/* ==================================================
+                    USERNAME BUTTON
+                    ================================================== */}
+
                 <button
                   type="button"
                   onClick={() =>
@@ -177,7 +215,9 @@ export default function DashboardPage() {
                   }
                   className="flex h-10 items-center justify-center rounded-full border border-[#E1E4EA] bg-white px-4 text-[11px] font-semibold text-[#414650] shadow-[0_1px_2px_rgba(17,19,26,0.03)] transition hover:border-[#D5D9E1] hover:bg-[#FAFAFC]"
                 >
-                  Reserve username
+                  {registeredUsername
+                    ? `@${registeredUsername}`
+                    : "Reserve username"}
                 </button>
 
                 <button
@@ -492,9 +532,10 @@ export default function DashboardPage() {
 
       <UsernameModal
         open={usernameOpen}
-        onClose={() =>
-          setUsernameOpen(false)
-        }
+        onClose={() => {
+          setUsernameOpen(false);
+          refetchUsername();
+        }}
         address={address}
       />
 

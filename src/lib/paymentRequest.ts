@@ -1,5 +1,6 @@
 import {
   getAddress,
+  parseUnits,
   verifyTypedData,
   type Address,
   type Hex,
@@ -164,9 +165,27 @@ export async function verifyInvoiceSignature(
       return false;
     }
 
-    if (
-      Number(amount) <= 0
-    ) {
+    /*
+     * Parse using the same 6-decimal
+     * precision used by Arc Pay's USDC.
+     *
+     * This avoids JavaScript Number
+     * precision issues.
+     */
+
+    try {
+      const parsedAmount =
+        parseUnits(
+          amount,
+          6
+        );
+
+      if (
+        parsedAmount <= 0n
+      ) {
+        return false;
+      }
+    } catch {
       return false;
     }
 

@@ -11,13 +11,20 @@ import {
 } from "lucide-react";
 
 import {
+  useAccount,
   useReadContract,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
 
-import { USERNAME_REGISTRY_ADDRESS } from "@/lib/config";
-import { usernameRegistryAbi } from "@/lib/usernameRegistryAbi";
+import { arcTestnet } from "@/lib/chain";
+import {
+  USERNAME_REGISTRY_ADDRESS,
+} from "@/lib/config";
+
+import {
+  usernameRegistryAbi,
+} from "@/lib/usernameRegistryAbi";
 
 type UsernameModalProps = {
   open: boolean;
@@ -25,16 +32,26 @@ type UsernameModalProps = {
   address?: string;
 };
 
-const USERNAME_REGEX = /^[a-z0-9]{3,20}$/;
+const USERNAME_REGEX =
+  /^[a-z0-9]{3,20}$/;
 
 export function UsernameModal({
   open,
   onClose,
   address = "",
 }: UsernameModalProps) {
-  const [username, setUsername] = useState("");
-  const [reserved, setReserved] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const {
+    chainId,
+  } = useAccount();
+
+  const [username, setUsername] =
+    useState("");
+
+  const [reserved, setReserved] =
+    useState(false);
+
+  const [copied, setCopied] =
+    useState(false);
 
   const normalized = username
     .toLowerCase()
@@ -42,67 +59,130 @@ export function UsernameModal({
     .slice(0, 20);
 
   const valid =
-    USERNAME_REGEX.test(normalized);
+    USERNAME_REGEX.test(
+      normalized
+    );
 
-  const shortAddress = useMemo(() => {
-    if (!address) {
-      return "Wallet not connected";
-    }
+  const onArcTestnet =
+    chainId === arcTestnet.id;
 
-    return `${address.slice(
-      0,
-      6
-    )}...${address.slice(-4)}`;
-  }, [address]);
+  const shortAddress =
+    useMemo(() => {
+      if (!address) {
+        return "Wallet not connected";
+      }
+
+      return `${address.slice(
+        0,
+        6
+      )}...${address.slice(-4)}`;
+    }, [address]);
+
+  /* ============================================================
+     EXISTING USERNAME
+     ============================================================ */
 
   const {
     data: registeredUsername,
-    isLoading: loadingRegisteredUsername,
-    refetch: refetchRegisteredUsername,
+    isLoading:
+      loadingRegisteredUsername,
+    refetch:
+      refetchRegisteredUsername,
   } = useReadContract({
-    address: USERNAME_REGISTRY_ADDRESS,
-    abi: usernameRegistryAbi,
-    functionName: "usernameOf",
+    address:
+      USERNAME_REGISTRY_ADDRESS,
+
+    abi:
+      usernameRegistryAbi,
+
+    functionName:
+      "usernameOf",
+
     args: address
-      ? [address as `0x${string}`]
+      ? [
+          address as `0x${string}`,
+        ]
       : undefined,
+
+    chainId:
+      arcTestnet.id,
+
     query: {
       enabled:
-        open && !!address,
+        open &&
+        Boolean(address) &&
+        onArcTestnet,
     },
   });
+
+  /* ============================================================
+     AVAILABILITY
+     ============================================================ */
 
   const {
     data: available,
     isLoading: checking,
-    refetch: refetchAvailability,
+    refetch:
+      refetchAvailability,
   } = useReadContract({
-    address: USERNAME_REGISTRY_ADDRESS,
-    abi: usernameRegistryAbi,
-    functionName: "isUsernameAvailable",
-    args: [normalized],
+    address:
+      USERNAME_REGISTRY_ADDRESS,
+
+    abi:
+      usernameRegistryAbi,
+
+    functionName:
+      "isUsernameAvailable",
+
+    args: [
+      normalized,
+    ],
+
+    chainId:
+      arcTestnet.id,
+
     query: {
       enabled:
-        open && valid,
+        open &&
+        valid &&
+        onArcTestnet,
     },
   });
+
+  /* ============================================================
+     REGISTRATION
+     ============================================================ */
 
   const {
     writeContract,
     data: registrationHash,
-    isPending: isRegistering,
-    error: registrationError,
+    isPending:
+      isRegistering,
+    error:
+      registrationError,
   } = useWriteContract();
 
   const {
-    isLoading: isConfirming,
-    isSuccess: registrationSuccess,
-  } = useWaitForTransactionReceipt({
-    hash: registrationHash,
-  });
+    isLoading:
+      isConfirming,
+    isSuccess:
+      registrationSuccess,
+  } =
+    useWaitForTransactionReceipt({
+      hash:
+        registrationHash,
+    });
+
+  /* ============================================================
+     LOAD EXISTING USERNAME
+     ============================================================ */
 
   useEffect(() => {
-    if (!open || !address) {
+    if (
+      !open ||
+      !address ||
+      !onArcTestnet
+    ) {
       return;
     }
 
@@ -114,13 +194,22 @@ export function UsernameModal({
       setUsername(
         registeredUsername
       );
+
       setReserved(true);
+    } else {
+      setUsername("");
+      setReserved(false);
     }
   }, [
     open,
     address,
+    onArcTestnet,
     registeredUsername,
   ]);
+
+  /* ============================================================
+     REGISTRATION SUCCESS
+     ============================================================ */
 
   useEffect(() => {
     if (!registrationSuccess) {
@@ -137,6 +226,10 @@ export function UsernameModal({
     refetchRegisteredUsername,
   ]);
 
+  /* ============================================================
+     RESET WHEN CLOSED
+     ============================================================ */
+
   useEffect(() => {
     if (open) {
       return;
@@ -147,20 +240,44 @@ export function UsernameModal({
     setCopied(false);
   }, [open]);
 
+  /* ============================================================
+     RESET WHEN WALLET CHANGES
+     ============================================================ */
+
+  useEffect(() => {
+    setUsername("");
+    setReserved(false);
+    setCopied(false);
+  }, [address]);
+
+  /* ============================================================
+     USERNAME INPUT
+     ============================================================ */
+
   function handleUsernameChange(
     value: string
   ) {
-    const cleaned = value
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "")
-      .slice(0, 20);
+    const cleaned =
+      value
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9]/g,
+          ""
+        )
+        .slice(0, 20);
 
     setUsername(cleaned);
     setReserved(false);
   }
 
+  /* ============================================================
+     REGISTER
+     ============================================================ */
+
   function handleReserve() {
     if (
+      !onArcTestnet ||
+      !address ||
       !valid ||
       available !== true ||
       isRegistering ||
@@ -173,12 +290,25 @@ export function UsernameModal({
     writeContract({
       address:
         USERNAME_REGISTRY_ADDRESS,
-      abi: usernameRegistryAbi,
+
+      abi:
+        usernameRegistryAbi,
+
       functionName:
         "registerUsername",
-      args: [normalized],
+
+      args: [
+        normalized,
+      ],
+
+      chainId:
+        arcTestnet.id,
     });
   }
+
+  /* ============================================================
+     COPY ADDRESS
+     ============================================================ */
 
   async function copyAddress() {
     if (!address) {
@@ -199,6 +329,10 @@ export function UsernameModal({
       // Ignore clipboard failure.
     }
   }
+
+  /* ============================================================
+     CLOSE
+     ============================================================ */
 
   function handleClose() {
     if (
@@ -311,8 +445,6 @@ export function UsernameModal({
               <PixelPattern />
             </div>
 
-            {/* TOP */}
-
             <div className="absolute left-6 right-6 top-6 flex items-start justify-between">
 
               <div className="flex items-center gap-2.5">
@@ -341,8 +473,6 @@ export function UsernameModal({
 
             </div>
 
-            {/* CENTER */}
-
             <div className="absolute left-6 right-6 top-[43%]">
 
               <p className="text-[7px] font-semibold uppercase tracking-[0.18em] text-white/40">
@@ -354,8 +484,6 @@ export function UsernameModal({
               </p>
 
             </div>
-
-            {/* BOTTOM */}
 
             <div className="absolute bottom-5 left-6 right-6 flex items-end justify-between">
 
@@ -392,6 +520,35 @@ export function UsernameModal({
             </div>
 
           </div>
+
+          {/* WRONG NETWORK */}
+
+          {!onArcTestnet && (
+            <div className="mt-5 rounded-[15px] border border-[#F0E2C8] bg-[#FFFBF4] px-4 py-3.5">
+
+              <div className="flex items-start gap-2.5">
+
+                <CircleAlert
+                  size={14}
+                  className="mt-0.5 shrink-0 text-[#C58A28]"
+                />
+
+                <div>
+
+                  <p className="text-[9px] font-semibold text-[#755522]">
+                    Switch to Arc Testnet
+                  </p>
+
+                  <p className="mt-1 text-[8px] leading-4 text-[#A47A3A]">
+                    Username registration is available on Arc Testnet.
+                  </p>
+
+                </div>
+
+              </div>
+
+            </div>
+          )}
 
           {/* EXISTING USERNAME */}
 
@@ -667,6 +824,7 @@ export function UsernameModal({
               type="button"
               onClick={handleReserve}
               disabled={
+                !onArcTestnet ||
                 !valid ||
                 available !== true ||
                 checking ||

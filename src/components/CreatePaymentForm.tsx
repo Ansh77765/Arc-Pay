@@ -15,6 +15,7 @@ import {
 import {
   useAccount,
   usePublicClient,
+  useReadContract,
   useSignTypedData,
 } from "wagmi";
 
@@ -37,6 +38,14 @@ import {
   shortAddress,
 } from "@/lib/format";
 
+import {
+  USERNAME_REGISTRY_ADDRESS,
+} from "@/lib/config";
+
+import {
+  usernameRegistryAbi,
+} from "@/lib/usernameRegistryAbi";
+
 import type { Invoice } from "@/types/invoice";
 
 type CreatePaymentFormProps = {
@@ -44,7 +53,8 @@ type CreatePaymentFormProps = {
   onClose: () => void;
 };
 
-const PAYMENT_DURATION = 10 * 60 * 1000;
+const PAYMENT_DURATION =
+  10 * 60 * 1000;
 
 export function CreatePaymentForm({
   open,
@@ -56,12 +66,14 @@ export function CreatePaymentForm({
     chainId,
   } = useAccount();
 
-  const publicClient = usePublicClient({
-    chainId: arcTestnet.id,
-  });
+  const publicClient =
+    usePublicClient({
+      chainId: arcTestnet.id,
+    });
 
-  const { signTypedDataAsync } =
-    useSignTypedData();
+  const {
+    signTypedDataAsync,
+  } = useSignTypedData();
 
   const [amount, setAmount] =
     useState("");
@@ -81,20 +93,35 @@ export function CreatePaymentForm({
   const [copied, setCopied] =
     useState(false);
 
-  /*
-   * IMPORTANT:
-   * This is the exact timestamp used when
-   * the invoice was created.
-   *
-   * It is also stored inside the signed
-   * invoice, so the payment page uses
-   * the same 10-minute lifetime.
-   */
   const [generatedAt, setGeneratedAt] =
     useState<number | null>(null);
 
   const [timeLeft, setTimeLeft] =
     useState(PAYMENT_DURATION);
+
+  /*
+   * ============================================================
+   * REGISTERED USERNAME
+   * ============================================================
+   */
+
+  const {
+    data: registeredUsername,
+    isLoading: loadingUsername,
+  } = useReadContract({
+    address:
+      USERNAME_REGISTRY_ADDRESS,
+    abi: usernameRegistryAbi,
+    functionName: "usernameOf",
+    args: [
+      address as `0x${string}`,
+    ],
+    query: {
+      enabled:
+        open &&
+        !!address,
+    },
+  });
 
   const onArcTestnet =
     isConnected &&
@@ -109,12 +136,6 @@ export function CreatePaymentForm({
    * ============================================================
    * TIMER
    * ============================================================
-   *
-   * Starts when the payment link is successfully created.
-   *
-   * Because generatedAt comes from the exact createdAt
-   * written into the Invoice, this timer matches the
-   * payment page timer.
    */
 
   useEffect(() => {
@@ -210,11 +231,6 @@ export function CreatePaymentForm({
       const id =
         generateInvoiceId();
 
-      /*
-       * Create the timestamp ONCE.
-       *
-       * Do not call Date.now() again for the timer.
-       */
       const createdAt =
         Date.now();
 
@@ -222,7 +238,8 @@ export function CreatePaymentForm({
         version: 2,
         id,
         recipient: address,
-        amount: amount.trim(),
+        amount:
+          amount.trim(),
         description:
           description
             .trim()
@@ -237,9 +254,6 @@ export function CreatePaymentForm({
         signature: "0x",
       };
 
-      /*
-       * Sign the payment request.
-       */
       const signature =
         await signTypedDataAsync({
           domain:
@@ -269,10 +283,6 @@ export function CreatePaymentForm({
       const url =
         `${window.location.origin}/pay/${token}`;
 
-      /*
-       * Save the exact invoice creation
-       * timestamp for the popup timer.
-       */
       setGeneratedAt(
         createdAt
       );
@@ -393,15 +403,14 @@ export function CreatePaymentForm({
           />
         </button>
 
-        {/* =================================================
-            HEADER
-           ================================================= */}
+        {/* HEADER */}
 
         <div className="border-b border-[#EEEEF1] px-6 pb-5 pt-6">
 
           <div className="flex items-start gap-3">
 
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#F5F5F6] text-[#55565D]">
+
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -414,6 +423,7 @@ export function CreatePaymentForm({
                   strokeLinecap="round"
                 />
               </svg>
+
             </div>
 
             <div className="min-w-0 flex-1">
@@ -430,33 +440,27 @@ export function CreatePaymentForm({
                 Create a secure USDC request
                 and share the link.
               </p>
+
             </div>
 
             <span className="mt-1 rounded-full bg-[#F7F7F8] px-2.5 py-1 text-[8px] font-bold text-[#777880]">
               USDC
             </span>
+
           </div>
         </div>
 
-        {/* =================================================
-            CONTENT
-           ================================================= */}
+        {/* CONTENT */}
 
         <div className="p-6">
 
           {generatedUrl ? (
 
-            /* =============================================
-               SUCCESS
-               ============================================= */
+            /* SUCCESS */
 
             <div className="space-y-4">
 
-              {/* SUCCESS + TIMER */}
-
               <div className="rounded-[18px] border border-[#DDEEE4] bg-[#F6FBF8] px-5 py-5 text-center">
-
-                {/* CIRCULAR TIMER */}
 
                 <div className="flex justify-center">
 
@@ -498,6 +502,7 @@ export function CreatePaymentForm({
                     ? "This payment request was valid for 10 minutes."
                     : "Share this link with the person who needs to pay you."}
                 </p>
+
               </div>
 
               {/* LINK */}
@@ -511,6 +516,7 @@ export function CreatePaymentForm({
                     <p className="truncate font-mono text-[9px] text-[#777880]">
                       {generatedUrl}
                     </p>
+
                   </div>
 
                   <button
@@ -534,6 +540,7 @@ export function CreatePaymentForm({
                       ? "Copied"
                       : "Copy"}
                   </button>
+
                 </div>
               </div>
 
@@ -569,9 +576,7 @@ export function CreatePaymentForm({
 
           ) : (
 
-            /* =============================================
-               FORM
-               ============================================= */
+            /* FORM */
 
             <form
               onSubmit={
@@ -596,6 +601,7 @@ export function CreatePaymentForm({
                   <span className="text-[9px] text-[#A0A1A8]">
                     USDC
                   </span>
+
                 </div>
 
                 <div className="flex h-[52px] items-center overflow-hidden rounded-[14px] border border-[#E2E2E5] bg-white transition focus-within:border-[#BFC0C5] focus-within:ring-2 focus-within:ring-[#111111]/[0.04]">
@@ -617,6 +623,7 @@ export function CreatePaymentForm({
                   <div className="mr-3 flex h-7 items-center rounded-full bg-[#F5F5F6] px-2.5 text-[9px] font-bold text-[#55565D]">
                     USDC
                   </div>
+
                 </div>
               </div>
 
@@ -636,6 +643,7 @@ export function CreatePaymentForm({
                   <span className="text-[9px] text-[#A0A1A8]">
                     {description.length}/140
                   </span>
+
                 </div>
 
                 <textarea
@@ -653,6 +661,7 @@ export function CreatePaymentForm({
                   }
                   className="w-full resize-none rounded-[14px] border border-[#E2E2E5] bg-white px-4 py-3 text-[11px] leading-5 text-[#33343A] outline-none transition placeholder:text-[#B8B9BF] focus:border-[#BFC0C5] focus:ring-2 focus:ring-[#111111]/[0.04]"
                 />
+
               </div>
 
               {/* RECIPIENT */}
@@ -674,21 +683,42 @@ export function CreatePaymentForm({
                       Receiving wallet
                     </p>
 
-                    <p className="mt-1 truncate font-mono text-[10px] font-medium text-[#55565D]">
-                      {address
-                        ? shortAddress(
+                    {registeredUsername ? (
+                      <p className="mt-1 font-mono text-[12px] font-semibold text-[#33343A]">
+                        @{registeredUsername}
+                      </p>
+                    ) : (
+                      <p className="mt-1 font-mono text-[10px] font-medium text-[#55565D]">
+                        {address
+                          ? shortAddress(
+                              address
+                            )
+                          : "Connect wallet"}
+                      </p>
+                    )}
+
+                    {registeredUsername &&
+                      address && (
+                        <p className="mt-1 truncate font-mono text-[8px] text-[#999AA2]">
+                          {shortAddress(
                             address
-                          )
-                        : "Connect wallet"}
-                    </p>
+                          )}
+                        </p>
+                      )}
+
                   </div>
 
                   {address && (
                     <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#F0FAF4] px-2.5 py-1 text-[8px] font-semibold text-[#31A66A]">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#31A66A]" />
-                      Connected
+                      {loadingUsername
+                        ? "Loading"
+                        : registeredUsername
+                        ? "Username"
+                        : "Connected"}
                     </span>
                   )}
+
                 </div>
               </div>
 
@@ -711,6 +741,7 @@ export function CreatePaymentForm({
                     <p className="mt-1 text-[9px] leading-5 text-[#B76A6A]">
                       {formError}
                     </p>
+
                   </div>
                 </div>
               )}
@@ -746,6 +777,7 @@ export function CreatePaymentForm({
                     />
                   </>
                 )}
+
               </button>
 
               {/* SECURITY */}
@@ -761,10 +793,12 @@ export function CreatePaymentForm({
                   Your wallet signs the request.
                   Arc Pay never holds your funds.
                 </p>
+
               </div>
 
             </form>
           )}
+
         </div>
       </div>
     </div>
@@ -840,7 +874,6 @@ function PaymentCountdown({
               : `Payment link expires in ${formattedTime}`
           }
         >
-          {/* BACKGROUND RING */}
 
           <circle
             cx="32"
@@ -850,8 +883,6 @@ function PaymentCountdown({
             stroke="#DDEEE4"
             strokeWidth="3"
           />
-
-          {/* PROGRESS RING */}
 
           <circle
             cx="32"
@@ -873,9 +904,8 @@ function PaymentCountdown({
             }
             className="transition-[stroke-dashoffset] duration-500"
           />
-        </svg>
 
-        {/* TIME */}
+        </svg>
 
         <div
           className={`absolute inset-0 flex items-center justify-center font-mono text-[10px] font-bold tabular-nums ${
@@ -888,6 +918,7 @@ function PaymentCountdown({
             ? "00:00"
             : formattedTime}
         </div>
+
       </div>
 
       <p
@@ -901,6 +932,7 @@ function PaymentCountdown({
           ? "Expired"
           : "Expires in"}
       </p>
+
     </div>
   );
 }

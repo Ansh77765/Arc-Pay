@@ -9,6 +9,14 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import {
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+
+import { USERNAME_REGISTRY_ADDRESS } from "@/lib/config";
+import { usernameRegistryAbi } from "@/lib/usernameRegistryAbi";
 
 type UsernameModalProps = {
   open: boolean;
@@ -24,17 +32,15 @@ export function UsernameModal({
   address = "",
 }: UsernameModalProps) {
   const [username, setUsername] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [available, setAvailable] =
-    useState<boolean | null>(null);
   const [reserved, setReserved] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const normalized =
-    username.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const normalized = username
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 20);
 
-  const valid =
-    USERNAME_REGEX.test(normalized);
+  const valid = USERNAME_REGEX.test(normalized);
 
   const shortAddress = useMemo(() => {
     if (!address) return "Wallet not connected";
@@ -43,41 +49,63 @@ export function UsernameModal({
   }, [address]);
 
   /*
-   * TEMPORARY AVAILABILITY CHECK
-   *
-   * This will later be replaced with the
-   * Arc Pay username registry contract lookup.
+   * LIVE BLOCKCHAIN AVAILABILITY
    */
+
+  const {
+    data: available,
+    isLoading: checking,
+    refetch: refetchAvailability,
+  } = useReadContract({
+    address: USERNAME_REGISTRY_ADDRESS,
+    abi: usernameRegistryAbi,
+    functionName: "isUsernameAvailable",
+    args: [normalized],
+    query: {
+      enabled: open && valid,
+    },
+  });
+
+  /*
+   * REGISTER USERNAME
+   */
+
+  const {
+    writeContract,
+    data: registrationHash,
+    isPending: isRegistering,
+    error: registrationError,
+  } = useWriteContract();
+
+  /*
+   * WAIT FOR TRANSACTION
+   */
+
+  const {
+    isLoading: isConfirming,
+    isSuccess: registrationSuccess,
+  } = useWaitForTransactionReceipt({
+    hash: registrationHash,
+  });
+
   useEffect(() => {
-    if (!valid) {
-      setAvailable(null);
-      setChecking(false);
-      return;
+    if (!open) {
+      setUsername("");
+      setReserved(false);
     }
+  }, [open]);
 
-    setChecking(true);
-    setAvailable(null);
+  useEffect(() => {
+    if (registrationSuccess) {
+      setReserved(true);
+      refetchAvailability();
+    }
+  }, [
+    registrationSuccess,
+    refetchAvailability,
+  ]);
 
-    const timeout = window.setTimeout(() => {
-      setChecking(false);
-
-      // Temporary UI state.
-      // Contract lookup will replace this.
-      setAvailable(true);
-    }, 450);
-
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [normalized, valid]);
-
-  if (!open) {
-    return null;
-  }
-
-  function handleUsernameChange(
-    value: string
-  ) {
+  function handleUsernameChange(value: string) {
     const cleaned = value
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "")
@@ -88,25 +116,28 @@ export function UsernameModal({
   }
 
   function handleReserve() {
-    if (!valid || !available) {
+    if (
+      !valid ||
+      available !== true ||
+      isRegistering ||
+      isConfirming
+    ) {
       return;
     }
 
-    /*
-     * Smart contract reservation will be connected here.
-     *
-     * For now this shows the completed UI state.
-     */
-    setReserved(true);
+    writeContract({
+      address: USERNAME_REGISTRY_ADDRESS,
+      abi: usernameRegistryAbi,
+      functionName: "registerUsername",
+      args: [normalized],
+    });
   }
 
   async function copyAddress() {
     if (!address) return;
 
     try {
-      await navigator.clipboard.writeText(
-        address
-      );
+      await navigator.clipboard.writeText(address);
 
       setCopied(true);
 
@@ -119,14 +150,23 @@ export function UsernameModal({
   }
 
   function handleClose() {
-    if (reserved) {
+    if (
+      !isRegistering &&
+      !isConfirming
+    ) {
       setUsername("");
-      setAvailable(null);
       setReserved(false);
+      setCopied(false);
+      onClose();
     }
-
-    onClose();
   }
+
+  if (!open) {
+    return null;
+  }
+
+  const busy =
+    isRegistering || isConfirming;
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center px-4">
@@ -150,7 +190,8 @@ export function UsernameModal({
           type="button"
           aria-label="Close"
           onClick={handleClose}
-          className="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E5E8] bg-white text-[#777880] transition hover:bg-[#F5F5F6] hover:text-[#111111]"
+          disabled={busy}
+          className="absolute right-5 top-5 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E5E8] bg-white text-[#777880] transition hover:bg-[#F5F5F6] hover:text-[#111111] disabled:opacity-40"
         >
           <X
             size={16}
@@ -186,6 +227,7 @@ export function UsernameModal({
                 that people can use instead of
                 your wallet address.
               </p>
+
             </div>
           </div>
         </div>
@@ -200,8 +242,6 @@ export function UsernameModal({
 
           <div className="relative mx-auto aspect-[1.62/1] w-full max-w-[430px] overflow-hidden rounded-[22px] border border-[#D9DCE2] bg-gradient-to-br from-[#F8F9FB] via-[#E7EAF0] to-[#D6DAE3] shadow-[0_18px_45px_-28px_rgba(0,0,0,.35)]">
 
-            {/* DOT FIELD */}
-
             <div className="pointer-events-none absolute right-[-20px] top-[-15px] h-[170px] w-[260px] opacity-35">
               <PixelPattern />
             </div>
@@ -210,7 +250,7 @@ export function UsernameModal({
               <PixelPattern />
             </div>
 
-            {/* TOP BRAND */}
+            {/* BRAND */}
 
             <div className="absolute left-6 top-6 flex items-center gap-2.5">
 
@@ -227,6 +267,7 @@ export function UsernameModal({
                   Payment identity
                 </p>
               </div>
+
             </div>
 
             {/* TESTNET */}
@@ -246,6 +287,7 @@ export function UsernameModal({
               <p className="mt-1 font-mono text-[29px] font-semibold tracking-[-0.05em] text-[#17181B] sm:text-[34px]">
                 @{normalized || "username"}
               </p>
+
             </div>
 
             {/* BOTTOM */}
@@ -261,6 +303,7 @@ export function UsernameModal({
                 <p className="mt-1 font-mono text-[8px] font-medium text-[#44464D]">
                   {shortAddress}
                 </p>
+
               </div>
 
               <div className="text-right">
@@ -272,8 +315,11 @@ export function UsernameModal({
                 <p className="mt-1 text-[8px] font-medium text-[#555860]">
                   PAY
                 </p>
+
               </div>
+
             </div>
+
           </div>
 
           {/* INPUT */}
@@ -289,6 +335,7 @@ export function UsernameModal({
               <span className="text-[9px] text-[#A0A1A8]">
                 3–20 characters
               </span>
+
             </div>
 
             <div
@@ -316,6 +363,7 @@ export function UsernameModal({
                 autoFocus
                 autoComplete="off"
                 spellCheck={false}
+                disabled={busy}
                 className="min-w-0 flex-1 bg-transparent px-2 text-[15px] font-medium tracking-[-0.02em] text-[#111111] outline-none placeholder:text-[#C4C5CA]"
               />
 
@@ -345,10 +393,9 @@ export function UsernameModal({
                       className="text-[#D65A5A]"
                     />
                   )}
+
               </div>
             </div>
-
-            {/* VALIDATION */}
 
             {!valid &&
               username.length > 0 && (
@@ -382,6 +429,7 @@ export function UsernameModal({
                   {normalized} is already taken
                 </p>
               )}
+
           </div>
 
           {/* WALLET */}
@@ -399,24 +447,19 @@ export function UsernameModal({
                 <p className="mt-1 truncate font-mono text-[10px] text-[#55565D]">
                   {shortAddress}
                 </p>
+
               </div>
 
               {address && (
                 <button
                   type="button"
-                  onClick={
-                    copyAddress
-                  }
+                  onClick={copyAddress}
                   className="flex h-8 shrink-0 items-center gap-1.5 rounded-[9px] border border-[#E1E1E4] bg-white px-2.5 text-[8px] font-medium text-[#66676E] transition hover:bg-[#F2F2F3]"
                 >
                   {copied ? (
-                    <Check
-                      size={12}
-                    />
+                    <Check size={12} />
                   ) : (
-                    <Copy
-                      size={12}
-                    />
+                    <Copy size={12} />
                   )}
 
                   {copied
@@ -424,31 +467,75 @@ export function UsernameModal({
                     : "Copy"}
                 </button>
               )}
+
             </div>
           </div>
+
+          {/* ERROR */}
+
+          {registrationError && (
+            <div className="mt-4 rounded-[12px] border border-[#E8CCCC] bg-[#FFF7F7] px-4 py-3">
+
+              <p className="text-[9px] font-medium leading-4 text-[#B65353]">
+                Transaction failed or was rejected.
+                If the username was just taken,
+                choose another one.
+              </p>
+
+            </div>
+          )}
+
+          {/* TRANSACTION STATUS */}
+
+          {isRegistering && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-[9px] text-[#777880]">
+              <Loader2
+                size={12}
+                className="animate-spin"
+              />
+              Confirm the transaction in your wallet…
+            </div>
+          )}
+
+          {isConfirming && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-[9px] text-[#777880]">
+              <Loader2
+                size={12}
+                className="animate-spin"
+              />
+              Confirming registration on Arc…
+            </div>
+          )}
 
           {/* RESERVE */}
 
           <button
             type="button"
-            onClick={
-              handleReserve
-            }
+            onClick={handleReserve}
             disabled={
               !valid ||
-              !available ||
+              available !== true ||
               checking ||
+              busy ||
               reserved
             }
             className="mt-5 flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#111111] text-[11px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
           >
+
             {reserved ? (
               <>
-                <Check
-                  size={14}
-                />
-
+                <Check size={14} />
                 Username reserved
+              </>
+            ) : busy ? (
+              <>
+                <Loader2
+                  size={14}
+                  className="animate-spin"
+                />
+                {isRegistering
+                  ? "Confirm in wallet…"
+                  : "Registering…"}
               </>
             ) : (
               <>
@@ -459,6 +546,7 @@ export function UsernameModal({
                 </span>
               </>
             )}
+
           </button>
 
           {/* FOOTNOTE */}
@@ -473,7 +561,9 @@ export function UsernameModal({
               Your wallet controls this identity.
               Arc Pay never holds your keys.
             </p>
+
           </div>
+
         </div>
       </div>
     </div>
@@ -488,11 +578,8 @@ function PixelPattern() {
   const pixels = Array.from(
     { length: 90 },
     (_, index) => {
-      const row =
-        Math.floor(index / 15);
-
-      const column =
-        index % 15;
+      const row = Math.floor(index / 15);
+      const column = index % 15;
 
       const distance =
         Math.abs(
@@ -501,13 +588,10 @@ function PixelPattern() {
             2
         );
 
-      const opacity =
-        Math.max(
-          0.08,
-          1 -
-            distance /
-              7
-        );
+      const opacity = Math.max(
+        0.08,
+        1 - distance / 7
+      );
 
       return {
         x: column * 13,
@@ -523,22 +607,18 @@ function PixelPattern() {
       className="h-full w-full"
       preserveAspectRatio="none"
     >
-      {pixels.map(
-        (pixel, index) => (
-          <rect
-            key={index}
-            x={pixel.x}
-            y={pixel.y}
-            width="6"
-            height="6"
-            rx="1"
-            fill="#7E8490"
-            opacity={
-              pixel.opacity
-            }
-          />
-        )
-      )}
+      {pixels.map((pixel, index) => (
+        <rect
+          key={index}
+          x={pixel.x}
+          y={pixel.y}
+          width="6"
+          height="6"
+          rx="1"
+          fill="#7E8490"
+          opacity={pixel.opacity}
+        />
+      ))}
     </svg>
   );
 }

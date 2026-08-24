@@ -114,9 +114,7 @@ export function PaymentView({
     useState("");
 
   /* ============================================================
-     10 MINUTE PAYMENT TIMER
-
-     invoice.createdAt is already Date.now() milliseconds.
+     EXPIRY
      ============================================================ */
 
   const expiresAt =
@@ -150,9 +148,7 @@ export function PaymentView({
       );
 
     return () => {
-      window.clearInterval(
-        interval
-      );
+      window.clearInterval(interval);
     };
   }, [expiresAt]);
 
@@ -173,7 +169,7 @@ export function PaymentView({
       invoice.recipient.toLowerCase();
 
   /* ============================================================
-     USDC BALANCE
+     BALANCE
      ============================================================ */
 
   const {
@@ -195,7 +191,7 @@ export function PaymentView({
   });
 
   /* ============================================================
-     PERMIT2 ALLOWANCE
+     ALLOWANCE
      ============================================================ */
 
   const {
@@ -302,17 +298,24 @@ export function PaymentView({
     let active = true;
 
     setInvoiceValid(null);
+    setError(null);
+    setStatus("checking");
 
     verifyInvoiceSignature(invoice)
       .then((valid) => {
-        if (active) {
-          setInvoiceValid(valid);
+        if (!active) return;
+
+        setInvoiceValid(valid);
+
+        if (!valid) {
+          setStatus("error");
         }
       })
       .catch(() => {
-        if (active) {
-          setInvoiceValid(false);
-        }
+        if (!active) return;
+
+        setInvoiceValid(false);
+        setStatus("error");
       });
 
     return () => {
@@ -371,9 +374,7 @@ export function PaymentView({
       );
 
     return () => {
-      window.clearInterval(
-        interval
-      );
+      window.clearInterval(interval);
     };
   }, [
     scanForPayment,
@@ -522,11 +523,6 @@ export function PaymentView({
           return;
         }
       }
-
-      /*
-       * Permit2 deadline cannot be longer
-       * than the payment request lifetime.
-       */
 
       const remainingSeconds =
         Math.max(
@@ -690,8 +686,6 @@ export function PaymentView({
   return (
     <div className="min-h-screen bg-white text-[#111111]">
 
-      {/* HEADER */}
-
       <header className="border-b border-[#E7E7EA] bg-white">
         <div className="mx-auto flex h-[68px] max-w-[1180px] items-center justify-between px-5 sm:px-8">
 
@@ -720,11 +714,7 @@ export function PaymentView({
         </div>
       </header>
 
-      {/* MAIN */}
-
       <main className="mx-auto max-w-[720px] px-5 pb-20 pt-8 sm:px-8 sm:pt-12">
-
-        {/* TOP BAR */}
 
         <div className="mb-5 flex items-center justify-between gap-3">
 
@@ -758,15 +748,13 @@ export function PaymentView({
               ? "Expired"
               : status === "paid"
               ? "Paid"
+              : invoiceValid === null
+              ? "Verifying"
               : "Awaiting payment"}
           </span>
         </div>
 
-        {/* CARD */}
-
         <section className="overflow-hidden rounded-[24px] border border-[#E7E7EA] bg-white shadow-[0_20px_60px_-35px_rgba(0,0,0,.18)]">
-
-          {/* SUMMARY */}
 
           <div className="border-b border-[#EEEEF1] px-6 py-7 sm:px-8">
 
@@ -775,7 +763,6 @@ export function PaymentView({
               <div className="min-w-0">
 
                 <div className="flex items-center gap-2">
-
                   <span className="h-2 w-2 rounded-full bg-[#5B72D8]" />
 
                   <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#85868E]">
@@ -796,22 +783,16 @@ export function PaymentView({
                 <p className="mt-3 max-w-[450px] text-[12px] leading-5 text-[#85868E]">
                   {invoice.description}
                 </p>
+
               </div>
 
-              {/* TIMER */}
-
               <PaymentCountdown
-                timeLeft={
-                  timeLeft
-                }
-                expired={
-                  requestExpired
-                }
+                timeLeft={timeLeft}
+                expired={requestExpired}
               />
+
             </div>
           </div>
-
-          {/* DETAILS */}
 
           <div className="px-6 py-6 sm:px-8">
 
@@ -821,7 +802,6 @@ export function PaymentView({
                 label="Recipient"
                 value={
                   <div className="flex items-center gap-2">
-
                     <a
                       href={explorerAddressUrl(
                         invoice.recipient
@@ -865,29 +845,12 @@ export function PaymentView({
                   invoice.createdAt
                 )}
               />
+
             </div>
 
-            {invoiceValid === false && (
-              <div className="mt-4 rounded-[16px] border border-[#F0D5D5] bg-[#FFF8F8] px-4 py-4 text-center">
-
-                <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-[#FBEAEA] text-[11px] font-bold text-[#D65A5A]">
-                  !
-                </div>
-
-                <p className="mt-3 text-[11px] font-semibold text-[#B84D4D]">
-                  Invalid payment request
-                </p>
-
-                <p className="mt-1 text-[9px] text-[#C47777]">
-                  Do not send funds to this request.
-                </p>
-              </div>
-            )}
           </div>
 
           <div className="border-t border-[#EEEEF1]" />
-
-          {/* ACTION AREA */}
 
           <div className="p-6 sm:p-8">
 
@@ -935,16 +898,14 @@ export function PaymentView({
                     )}
                   </span>
                 </p>
+
               </div>
 
             ) : isRecipient ? (
 
-              /* RECIPIENT */
-
               <div className="space-y-4">
 
                 <div className="rounded-[18px] border border-[#E7E7EA] bg-[#F7F7F8] p-5">
-
                   <p className="text-[12px] font-semibold text-[#33343A]">
                     This is your request
                   </p>
@@ -966,12 +927,11 @@ export function PaymentView({
                     copiedLabel="Copied"
                     className="shrink-0 rounded-[10px] bg-[#111111] px-3 py-2 text-[9px] font-semibold text-white"
                   />
+
                 </div>
               </div>
 
             ) : !isConnected ? (
-
-              /* CONNECT */
 
               <div className="rounded-[18px] border border-[#E7E7EA] bg-[#FAFAFA] p-6 text-center">
 
@@ -992,11 +952,10 @@ export function PaymentView({
                 <div className="mt-5 flex justify-center">
                   <WalletWidget />
                 </div>
+
               </div>
 
             ) : !onArcTestnet ? (
-
-              /* WRONG NETWORK */
 
               <div className="space-y-3">
 
@@ -1013,6 +972,7 @@ export function PaymentView({
                   <p className="mt-1 text-[10px] leading-5 text-[#A47A3A]">
                     Switch your wallet to Arc Testnet to continue.
                   </p>
+
                 </div>
 
                 <button
@@ -1023,24 +983,27 @@ export function PaymentView({
                         arcTestnet.id,
                     })
                   }
-                  disabled={
-                    switching
-                  }
+                  disabled={switching}
                   className="h-12 w-full rounded-[13px] bg-[#111111] text-[11px] font-semibold text-white transition hover:bg-[#292929] disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
                 >
                   {switching
                     ? "Switching…"
                     : "Switch to Arc Testnet"}
                 </button>
+
               </div>
 
-            ) : invoiceValid !== true ? (
+            ) : invoiceValid === null ? (
 
               /* VERIFYING */
 
-              <div className="rounded-[18px] border border-[#E7E7EA] bg-[#FAFAFA] px-5 py-8 text-center">
+              <div className="rounded-[18px] border border-[#E7E7EA] bg-[#FAFAFA] px-5 py-9 text-center">
 
-                <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-[#E2E2E5] border-t-[#111111]" />
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm">
+
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#E2E2E5] border-t-[#111111]" />
+
+                </div>
 
                 <p className="mt-4 text-[12px] font-semibold text-[#55565D]">
                   Verifying payment request…
@@ -1049,6 +1012,35 @@ export function PaymentView({
                 <p className="mt-1 text-[10px] leading-5 text-[#999AA2]">
                   Checking the signed request before allowing payment.
                 </p>
+
+              </div>
+
+            ) : invoiceValid === false ? (
+
+              /* INVALID */
+
+              <div className="rounded-[18px] border border-[#F0D5D5] bg-[#FFF8F8] p-7 text-center">
+
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FBEAEA] text-[#D65A5A]">
+                  !
+                </div>
+
+                <p className="mt-4 text-[14px] font-semibold text-[#B84D4D]">
+                  Invalid payment request
+                </p>
+
+                <p className="mx-auto mt-1 max-w-[330px] text-[10px] leading-5 text-[#C47777]">
+                  This request could not be verified.
+                  Do not send funds to this request.
+                </p>
+
+                <Link
+                  href="/"
+                  className="mt-5 inline-flex h-9 items-center rounded-full bg-[#111111] px-4 text-[9px] font-semibold text-white"
+                >
+                  Return to Arc Pay
+                </Link>
+
               </div>
 
             ) : requestExpired ? (
@@ -1069,6 +1061,7 @@ export function PaymentView({
                   This request was valid for 10 minutes.
                   Ask the sender to create a new payment link.
                 </p>
+
               </div>
 
             ) : (
@@ -1147,6 +1140,7 @@ export function PaymentView({
                     Funds are sent directly to the recipient —
                     Arc Pay never holds them.
                   </p>
+
                 </div>
 
                 {insufficientBalance &&
@@ -1168,11 +1162,13 @@ export function PaymentView({
                           )}{" "}
                           USDC
                         </span>
+
                       </div>
 
                       <p className="mt-1 text-[9px] text-[#A47A3A]">
                         Add more USDC to complete this payment.
                       </p>
+
                     </div>
                   )}
 
@@ -1186,6 +1182,7 @@ export function PaymentView({
                     <p className="mt-1 text-[9px] leading-5 text-[#C47777]">
                       {error}
                     </p>
+
                   </div>
                 )}
               </>
@@ -1201,6 +1198,7 @@ export function PaymentView({
         <p className="mt-2 text-center text-[9px] text-[#B0B1B7]">
           Arc Pay never holds your funds.
         </p>
+
       </main>
     </div>
   );
@@ -1342,6 +1340,7 @@ function PaymentCountdown({
             ? "!"
             : `${minutes}m`}
         </span>
+
       </div>
 
       <div className="hidden sm:block">
@@ -1367,6 +1366,7 @@ function PaymentCountdown({
             ? "Expired"
             : "Expires"}
         </p>
+
       </div>
     </div>
   );

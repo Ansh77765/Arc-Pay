@@ -233,7 +233,10 @@ export function PaymentView({
         const client =
           createPublicClient({
             chain: arcTestnet,
-            transport: http(),
+            transport: http(
+              process.env.NEXT_PUBLIC_RPC_URL ??
+                "https://rpc.testnet.arc.network"
+            ),
           });
 
         if (!cancelled) {
@@ -854,8 +857,6 @@ export function PaymentView({
 
           <div className="p-6 sm:p-8">
 
-            {/* PAID */}
-
             {status === "paid" &&
             payment ? (
 
@@ -995,8 +996,6 @@ export function PaymentView({
 
             ) : invoiceValid === null ? (
 
-              /* VERIFYING */
-
               <div className="rounded-[18px] border border-[#E7E7EA] bg-[#FAFAFA] px-5 py-9 text-center">
 
                 <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm">
@@ -1016,8 +1015,6 @@ export function PaymentView({
               </div>
 
             ) : invoiceValid === false ? (
-
-              /* INVALID */
 
               <div className="rounded-[18px] border border-[#F0D5D5] bg-[#FFF8F8] p-7 text-center">
 
@@ -1045,8 +1042,6 @@ export function PaymentView({
 
             ) : requestExpired ? (
 
-              /* EXPIRED */
-
               <div className="rounded-[18px] border border-[#F0D5D5] bg-[#FFF8F8] p-7 text-center">
 
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FBEAEA] text-[#D65A5A]">
@@ -1065,8 +1060,6 @@ export function PaymentView({
               </div>
 
             ) : (
-
-              /* PAYMENT */
 
               <>
                 {pendingTxHash &&

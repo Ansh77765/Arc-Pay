@@ -34,6 +34,7 @@ import {
   USDC_ADDRESS,
   USDC_DECIMALS,
   USERNAME_REGISTRY_ADDRESS,
+  EXPLORER_URL,
 } from "@/lib/config";
 
 import { usernameRegistryAbi } from "@/lib/usernameRegistryAbi";
@@ -123,12 +124,6 @@ export default function SendPage() {
     hash: transactionHash,
   });
 
-  /*
-   * ============================================================
-   * USDC BALANCE
-   * ============================================================
-   */
-
   const {
     data: balance,
     isLoading: loadingBalance,
@@ -147,11 +142,9 @@ export default function SendPage() {
     },
   });
 
-  /*
-   * ============================================================
-   * RECIPIENT
-   * ============================================================
-   */
+  /* ============================================================
+     RECIPIENT
+     ============================================================ */
 
   const normalizedRecipient =
     recipient.trim();
@@ -175,12 +168,6 @@ export default function SendPage() {
           .toLowerCase()
       : "";
 
-  /*
-   * ============================================================
-   * RESOLVE @USERNAME
-   * ============================================================
-   */
-
   const {
     data: resolvedAddress,
     isLoading: resolvingUsername,
@@ -197,12 +184,6 @@ export default function SendPage() {
     },
   });
 
-  /*
-   * ============================================================
-   * FINAL RECIPIENT
-   * ============================================================
-   */
-
   const recipientAddress =
     recipientType === "address"
       ? normalizedRecipient
@@ -212,11 +193,9 @@ export default function SendPage() {
       ? resolvedAddress
       : "";
 
-  /*
-   * ============================================================
-   * AMOUNT
-   * ============================================================
-   */
+  /* ============================================================
+     AMOUNT
+     ============================================================ */
 
   const amountValue = useMemo(() => {
     if (!amount.trim()) {
@@ -238,23 +217,15 @@ export default function SendPage() {
     balance !== undefined &&
     amountValue > balance;
 
-  /*
-   * ============================================================
-   * BALANCE DISPLAY
-   * ============================================================
-   */
-
   const formattedBalance =
     balance !== undefined
       ? Number(balance) /
         10 ** USDC_DECIMALS
       : null;
 
-  /*
-   * ============================================================
-   * VALIDATION
-   * ============================================================
-   */
+  /* ============================================================
+     VALIDATION
+     ============================================================ */
 
   const recipientReady =
     recipientType === "address" ||
@@ -279,11 +250,9 @@ export default function SendPage() {
     !isSending &&
     !isConfirming;
 
-  /*
-   * ============================================================
-   * CONTINUE
-   * ============================================================
-   */
+  /* ============================================================
+     CONTINUE
+     ============================================================ */
 
   function handleContinue() {
     setError(null);
@@ -374,11 +343,9 @@ export default function SendPage() {
     setShowConfirmation(true);
   }
 
-  /*
-   * ============================================================
-   * SEND USDC
-   * ============================================================
-   */
+  /* ============================================================
+     SEND
+     ============================================================ */
 
   function handleSend() {
     setError(null);
@@ -411,11 +378,9 @@ export default function SendPage() {
     });
   }
 
-  /*
-   * ============================================================
-   * MAX
-   * ============================================================
-   */
+  /* ============================================================
+     MAX
+     ============================================================ */
 
   function handleMax() {
     if (
@@ -436,11 +401,9 @@ export default function SendPage() {
     setError(null);
   }
 
-  /*
-   * ============================================================
-   * RESET
-   * ============================================================
-   */
+  /* ============================================================
+     RESET
+     ============================================================ */
 
   function resetForm() {
     setRecipient("");
@@ -449,18 +412,18 @@ export default function SendPage() {
     setShowConfirmation(false);
   }
 
-  /*
-   * ============================================================
-   * TRANSACTION SUCCESS
-   * ============================================================
-   */
-
   const transactionComplete =
     transactionSuccess &&
     !!transactionHash;
 
+  const displayError =
+    error ??
+    (transactionError
+      ? "Transaction failed or was rejected."
+      : null);
+
   return (
-    <div className="min-h-screen bg-white text-[#111111]">
+    <div className="min-h-screen bg-[#F7F8FC] text-[#11131A]">
 
       <TopBar />
 
@@ -470,54 +433,80 @@ export default function SendPage() {
 
         <main className="min-w-0 flex-1">
 
-          <div className="px-6 pb-16 pt-8 sm:px-10 lg:px-12">
+          <div className="px-5 pb-16 pt-7 sm:px-8 lg:px-10">
 
-            {/* HEADER */}
+            {/* ==================================================
+                HEADER
+                ================================================== */}
 
-            <div className="mb-10">
+            <div className="mb-8">
 
-              <p className="text-[12px] font-medium text-[#85868E]">
-                Payments
-              </p>
+              <div className="flex items-center gap-2">
 
-              <h1 className="mt-2 text-[30px] font-semibold tracking-[-0.045em]">
+                <span className="h-2 w-2 rounded-full bg-[#2563EB]" />
+
+                <p className="text-[11px] font-semibold tracking-wide text-[#747986]">
+                  PAYMENTS
+                </p>
+
+              </div>
+
+              <h1 className="mt-2 text-[32px] font-semibold tracking-[-0.055em]">
                 Send USDC
               </h1>
 
-              <p className="mt-2 text-[13px] text-[#85868E]">
+              <p className="mt-2 text-[13px] text-[#7D838F]">
                 Send USDC to a wallet or Arc Pay username.
               </p>
 
             </div>
 
-            <div className="grid gap-8 xl:grid-cols-[minmax(0,650px)_330px]">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,680px)_340px]">
 
-              {/* SEND CARD */}
+              {/* ==================================================
+                  MAIN SEND CARD
+                  ================================================== */}
 
-              <section className="rounded-[22px] border border-[#E7E7EA] bg-white">
+              <section className="arc-card overflow-hidden">
 
-                <div className="border-b border-[#EEEEF1] px-6 py-5">
+                {/* CARD HEADER */}
 
-                  <div className="flex items-center gap-3">
+                <div className="border-b border-[#EEF0F4] px-6 py-5">
 
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F5F6]">
+                  <div className="flex items-center justify-between gap-4">
 
-                      <ArrowUpRight
-                        size={19}
-                        strokeWidth={1.7}
-                      />
+                    <div className="flex items-center gap-3">
+
+                      <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-[#EAF2FF] text-[#2563EB]">
+
+                        <ArrowUpRight
+                          size={19}
+                          strokeWidth={1.8}
+                        />
+
+                      </div>
+
+                      <div>
+
+                        <h2 className="text-[14px] font-semibold tracking-[-0.02em]">
+                          Payment details
+                        </h2>
+
+                        <p className="mt-1 text-[10px] text-[#9298A4]">
+                          Choose a recipient and amount.
+                        </p>
+
+                      </div>
 
                     </div>
 
-                    <div>
+                    <div className="hidden items-center gap-1.5 rounded-full bg-[#F0FDF7] px-2.5 py-1.5 sm:flex">
 
-                      <h2 className="text-[15px] font-semibold">
-                        Payment details
-                      </h2>
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#16A36A]" />
 
-                      <p className="mt-1 text-[11px] text-[#92939B]">
-                        Enter the recipient and amount.
-                      </p>
+                      <span className="text-[9px] font-semibold text-[#16A36A]">
+                        Arc Testnet
+                      </span>
 
                     </div>
 
@@ -527,31 +516,33 @@ export default function SendPage() {
 
                 <div className="space-y-7 p-6">
 
-                  {/* RECIPIENT */}
+                  {/* ==================================================
+                      RECIPIENT
+                      ================================================== */}
 
                   <div>
 
                     <div className="mb-2.5 flex items-center justify-between">
 
-                      <label className="text-[12px] font-medium text-[#33343A]">
+                      <label className="text-[11px] font-semibold text-[#333740]">
                         Recipient
                       </label>
 
-                      <span className="text-[10px] text-[#A0A1A8]">
+                      <span className="text-[9px] text-[#9AA0AB]">
                         Address or @username
                       </span>
 
                     </div>
 
                     <div
-                      className={`flex h-[54px] items-center rounded-[14px] border bg-white px-4 transition ${
+                      className={`arc-input flex h-[58px] items-center px-4 ${
                         recipientType === "invalid"
-                          ? "border-[#E7CACA]"
+                          ? "!border-[#E7CACA] !shadow-none"
                           : recipientType === "username" &&
                             resolvedAddress &&
                             resolvedAddress !== zeroAddress
-                          ? "border-[#CDE6D7]"
-                          : "border-[#E2E2E6]"
+                          ? "!border-[#BFE3CF] !shadow-none"
+                          : ""
                       }`}
                     >
 
@@ -565,16 +556,16 @@ export default function SendPage() {
                           setError(null);
                           setShowConfirmation(false);
                         }}
-                        placeholder="0x... or @username"
+                        placeholder="@username or 0x..."
                         autoComplete="off"
                         spellCheck={false}
-                        className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-[#222329] outline-none placeholder:text-[#B2B3BA]"
+                        className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-[#22252C] outline-none placeholder:text-[#B0B5BF]"
                       />
 
                       {resolvingUsername && (
                         <Loader2
                           size={16}
-                          className="animate-spin text-[#999AA2]"
+                          className="animate-spin text-[#8D939F]"
                         />
                       )}
 
@@ -582,8 +573,10 @@ export default function SendPage() {
                         recipientType === "username" &&
                         resolvedAddress &&
                         resolvedAddress !== zeroAddress && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF8F2] text-[#16A36A]">
+
                             <Check size={14} />
+
                           </div>
                         )}
 
@@ -591,47 +584,64 @@ export default function SendPage() {
 
                     {recipientType === "username" &&
                       resolvingUsername && (
-                        <p className="mt-2 text-[9px] text-[#999AA2]">
+                        <div className="mt-2 flex items-center gap-1.5 text-[9px] text-[#8D939F]">
+
+                          <Loader2
+                            size={10}
+                            className="animate-spin"
+                          />
+
                           Resolving @{username}…
-                        </p>
+
+                        </div>
                       )}
 
                     {recipientType === "username" &&
                       !resolvingUsername &&
                       resolvedAddress &&
                       resolvedAddress !== zeroAddress && (
-                        <p className="mt-2 text-[9px] font-medium text-[#31A66A]">
-                          @{username} resolves to{" "}
-                          {shortAddress(
-                            resolvedAddress
-                          )}
-                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+
+                          <span className="rounded-full bg-[#EAF8F2] px-2 py-1 text-[8px] font-semibold text-[#16A36A]">
+                            Verified
+                          </span>
+
+                          <span className="font-mono text-[9px] text-[#7E8490]">
+                            @{username} →{" "}
+                            {shortAddress(
+                              resolvedAddress
+                            )}
+                          </span>
+
+                        </div>
                       )}
 
                     {recipientType === "username" &&
                       !resolvingUsername &&
                       (!resolvedAddress ||
                         resolvedAddress === zeroAddress) && (
-                        <p className="mt-2 text-[9px] text-[#D65A5A]">
+                        <p className="mt-2 text-[9px] font-medium text-[#D05B5B]">
                           @{username} is not registered.
                         </p>
                       )}
 
                     {recipientType === "invalid" && (
-                      <p className="mt-2 text-[9px] text-[#D65A5A]">
-                        Enter a valid 0x address or @username.
+                      <p className="mt-2 text-[9px] font-medium text-[#D05B5B]">
+                        Enter a valid wallet address or @username.
                       </p>
                     )}
 
                   </div>
 
-                  {/* AMOUNT */}
+                  {/* ==================================================
+                      AMOUNT
+                      ================================================== */}
 
                   <div>
 
                     <div className="mb-2.5 flex items-center justify-between">
 
-                      <label className="text-[12px] font-medium text-[#33343A]">
+                      <label className="text-[11px] font-semibold text-[#333740]">
                         Amount
                       </label>
 
@@ -642,14 +652,14 @@ export default function SendPage() {
                           balance === undefined ||
                           balance === 0n
                         }
-                        className="text-[10px] font-medium text-[#777880] disabled:opacity-40"
+                        className="rounded-full px-2.5 py-1 text-[9px] font-semibold text-[#5B61D6] transition hover:bg-[#F1F2FF] disabled:opacity-35"
                       >
                         Max
                       </button>
 
                     </div>
 
-                    <div className="flex h-[70px] items-center rounded-[14px] border border-[#E2E2E6] bg-white px-4">
+                    <div className="arc-input flex h-[74px] items-center px-4">
 
                       <input
                         type="text"
@@ -663,36 +673,35 @@ export default function SendPage() {
                           setError(null);
                           setShowConfirmation(false);
                         }}
-                        className="min-w-0 flex-1 bg-transparent text-[28px] font-semibold tracking-[-0.04em] text-[#111111] outline-none placeholder:text-[#B8B9BE]"
+                        className="tabular min-w-0 flex-1 bg-transparent text-[30px] font-semibold tracking-[-0.055em] text-[#11131A] outline-none placeholder:text-[#C2C6CE]"
                       />
 
-                      <button
-                        type="button"
-                        className="flex items-center gap-2 rounded-full bg-[#F5F5F6] px-3.5 py-2 text-[11px] font-semibold"
-                      >
+                      <div className="flex items-center gap-2 rounded-full bg-[#F3F4F8] px-3 py-2">
 
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[9px] font-bold">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[10px] font-bold text-[#2563EB] shadow-[0_1px_2px_rgba(17,19,26,0.05)]">
                           $
                         </span>
 
-                        USDC
+                        <span className="text-[10px] font-bold text-[#333740]">
+                          USDC
+                        </span>
 
                         <ChevronDown
-                          size={13}
-                          className="text-[#85868E]"
+                          size={12}
+                          className="text-[#9298A4]"
                         />
 
-                      </button>
+                      </div>
 
                     </div>
 
-                    <div className="mt-2 flex justify-between text-[10px] text-[#9A9BA2]">
+                    <div className="mt-2.5 flex items-center justify-between">
 
-                      <span>
+                      <span className="text-[9px] text-[#9298A4]">
                         Available balance
                       </span>
 
-                      <span>
+                      <span className="tabular text-[9px] font-semibold text-[#666C78]">
                         {loadingBalance
                           ? "Loading…"
                           : formattedBalance !== null
@@ -705,37 +714,45 @@ export default function SendPage() {
                     </div>
 
                     {insufficientBalance && (
-                      <p className="mt-2 text-[9px] font-medium text-[#D65A5A]">
+                      <div className="mt-2 flex items-center gap-1.5 text-[9px] font-medium text-[#D05B5B]">
+
+                        <CircleAlert size={11} />
+
                         Insufficient USDC balance.
-                      </p>
+
+                      </div>
                     )}
 
                   </div>
 
-                  {/* NETWORK */}
+                  {/* ==================================================
+                      NETWORK
+                      ================================================== */}
 
                   <div>
 
-                    <label className="mb-2.5 block text-[12px] font-medium text-[#33343A]">
+                    <label className="mb-2.5 block text-[11px] font-semibold text-[#333740]">
                       Network
                     </label>
 
-                    <div className="flex h-[58px] items-center justify-between rounded-[14px] border border-[#E2E2E6] px-4">
+                    <div className="flex min-h-[62px] items-center justify-between rounded-[15px] border border-[#E7E9EF] bg-[#FBFBFD] px-4">
 
                       <div className="flex items-center gap-3">
 
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F5F5F6]">
-                          <span className="h-2.5 w-2.5 rounded-full bg-[#31A66A]" />
-                        </span>
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF8F2]">
+
+                          <span className="h-2.5 w-2.5 rounded-full bg-[#16A36A] shadow-[0_0_0_4px_rgba(22,163,106,0.08)]" />
+
+                        </div>
 
                         <div>
 
-                          <p className="text-[12px] font-medium">
+                          <p className="text-[11px] font-semibold">
                             Arc Testnet
                           </p>
 
-                          <p className="mt-0.5 text-[10px] text-[#96979F]">
-                            USDC network
+                          <p className="mt-0.5 text-[9px] text-[#9298A4]">
+                            USDC payments
                           </p>
 
                         </div>
@@ -743,10 +760,10 @@ export default function SendPage() {
                       </div>
 
                       <span
-                        className={`text-[10px] font-medium ${
+                        className={`rounded-full px-2.5 py-1 text-[8px] font-semibold ${
                           networkReady
-                            ? "text-[#31A66A]"
-                            : "text-[#D65A5A]"
+                            ? "arc-status-success"
+                            : "arc-status-error"
                         }`}
                       >
                         {networkReady
@@ -758,41 +775,45 @@ export default function SendPage() {
 
                   </div>
 
-                  {/* INFO */}
+                  {/* ==================================================
+                      INFO
+                      ================================================== */}
 
-                  <div className="flex gap-3 rounded-[14px] bg-[#F7F7F8] p-4">
+                  <div className="arc-soft-accent flex gap-3 rounded-[15px] p-4">
 
                     <Info
                       size={15}
-                      className="mt-0.5 shrink-0 text-[#777880]"
+                      className="mt-0.5 shrink-0"
                     />
 
-                    <p className="text-[10px] leading-5 text-[#777880]">
-                      Send directly to a wallet address or use an Arc Pay username such as @ansh123.
+                    <p className="text-[9px] leading-5 text-[#656A78]">
+                      You can send directly to a wallet address or use an Arc Pay username. Always verify the recipient before confirming.
                     </p>
 
                   </div>
 
-                  {/* ERROR */}
+                  {/* ==================================================
+                      ERROR
+                      ================================================== */}
 
-                  {(error ||
-                    transactionError) && (
-                    <div className="flex items-start gap-3 rounded-[14px] border border-[#F2D5D5] bg-[#FFF8F8] px-4 py-3.5">
+                  {displayError && (
+                    <div className="arc-status-error flex items-start gap-3 rounded-[15px] px-4 py-3.5">
 
                       <CircleAlert
-                        size={16}
-                        className="mt-0.5 shrink-0 text-[#D85C5C]"
+                        size={15}
+                        className="mt-0.5 shrink-0"
                       />
 
-                      <p className="text-[9px] leading-5 text-[#B76A6A]">
-                        {error ??
-                          "Transaction failed or was rejected."}
+                      <p className="text-[9px] leading-5">
+                        {displayError}
                       </p>
 
                     </div>
                   )}
 
-                  {/* CONTINUE */}
+                  {/* ==================================================
+                      CONTINUE
+                      ================================================== */}
 
                   {!showConfirmation &&
                     !transactionComplete && (
@@ -804,140 +825,201 @@ export default function SendPage() {
                         disabled={
                           !canContinue
                         }
-                        className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#111111] text-[12px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
+                        className="arc-primary flex h-[53px] w-full items-center justify-center gap-2 rounded-[15px] text-[11px] font-semibold disabled:bg-[#E8EAF0] disabled:text-[#A1A6B0] disabled:shadow-none"
                       >
-                        Continue
+                        Review payment
+
+                        <ArrowUpRight
+                          size={14}
+                        />
+
                       </button>
                     )}
 
-                  {/* CONFIRMATION */}
+                  {!showConfirmation &&
+                    !transactionComplete && (
+                      <p className="text-center text-[9px] text-[#9AA0AB]">
+                        Your wallet will ask you to approve the transaction.
+                      </p>
+                    )}
+
+                  {/* ==================================================
+                      CONFIRMATION
+                      ================================================== */}
 
                   {showConfirmation &&
                     !transactionComplete && (
-                      <div className="rounded-[18px] border border-[#E7E7EA] bg-[#F8F8F9] p-5">
+                      <div className="overflow-hidden rounded-[19px] border border-[#E1E4EA] bg-[#F8F9FC]">
 
-                        <div className="flex items-start justify-between">
+                        <div className="border-b border-[#E8EAF0] px-5 py-4">
 
-                          <div>
+                          <div className="flex items-start justify-between">
 
-                            <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#999AA2]">
-                              Confirm payment
+                            <div>
+
+                              <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#949AA6]">
+                                Review payment
+                              </p>
+
+                              <p className="tabular mt-1 text-[24px] font-semibold tracking-[-0.05em]">
+                                {amount}
+                                <span className="ml-1 text-[11px] font-semibold text-[#777D89]">
+                                  USDC
+                                </span>
+                              </p>
+
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowConfirmation(
+                                  false
+                                )
+                              }
+                              disabled={
+                                isSending ||
+                                isConfirming
+                              }
+                              className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E2E5EA] bg-white text-[#777D89] transition hover:bg-[#F4F5F8]"
+                            >
+                              <X size={14} />
+                            </button>
+
+                          </div>
+
+                        </div>
+
+                        <div className="space-y-2 p-5">
+
+                          <div className="rounded-[14px] bg-white p-4">
+
+                            <div className="flex items-center justify-between">
+
+                              <span className="text-[9px] text-[#9298A4]">
+                                Recipient
+                              </span>
+
+                              <span className="rounded-full bg-[#F1EDFF] px-2 py-1 text-[8px] font-semibold text-[#6256C8]">
+                                {recipientType ===
+                                "username"
+                                  ? "Username"
+                                  : "Wallet"}
+                              </span>
+
+                            </div>
+
+                            <p className="mt-2 text-[12px] font-semibold">
+                              {recipientType ===
+                              "username"
+                                ? `@${username}`
+                                : shortAddress(
+                                    recipientAddress
+                                  )}
                             </p>
 
-                            <p className="mt-1 text-[19px] font-semibold tracking-[-0.03em]">
-                              {amount} USDC
-                            </p>
+                            {recipientType ===
+                              "username" && (
+                              <p className="mt-1 font-mono text-[8px] text-[#999FAA]">
+                                {shortAddress(
+                                  recipientAddress
+                                )}
+                              </p>
+                            )}
+
+                          </div>
+
+                          <div className="flex items-center justify-between rounded-[14px] bg-white px-4 py-3.5">
+
+                            <span className="text-[9px] text-[#9298A4]">
+                              Network
+                            </span>
+
+                            <span className="text-[9px] font-semibold">
+                              Arc Testnet
+                            </span>
 
                           </div>
 
                           <button
                             type="button"
-                            onClick={() =>
-                              setShowConfirmation(
-                                false
-                              )}
+                            onClick={
+                              handleSend
+                            }
                             disabled={
                               isSending ||
                               isConfirming
                             }
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E2E2E5] bg-white text-[#777880]"
+                            className="arc-accent mt-2 flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[11px] font-semibold disabled:opacity-50"
                           >
-                            <X size={14} />
+
+                            {isSending ? (
+                              <>
+                                <Loader2
+                                  size={14}
+                                  className="animate-spin"
+                                />
+                                Confirm in wallet…
+                              </>
+                            ) : isConfirming ? (
+                              <>
+                                <Loader2
+                                  size={14}
+                                  className="animate-spin"
+                                />
+                                Confirming…
+                              </>
+                            ) : (
+                              <>
+                                Send {amount} USDC
+                                <ArrowUpRight
+                                  size={14}
+                                />
+                              </>
+                            )}
+
                           </button>
 
                         </div>
 
-                        <div className="mt-4 rounded-[13px] bg-white p-3.5">
-
-                          <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#A0A1A8]">
-                            Recipient
-                          </p>
-
-                          <p className="mt-1 font-mono text-[11px] font-medium text-[#33343A]">
-                            {recipientType ===
-                            "username"
-                              ? `@${username}`
-                              : shortAddress(
-                                  recipientAddress
-                                )}
-                          </p>
-
-                          {recipientType ===
-                            "username" && (
-                            <p className="mt-1 font-mono text-[8px] text-[#999AA2]">
-                              {shortAddress(
-                                recipientAddress
-                              )}
-                            </p>
-                          )}
-
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={
-                            handleSend
-                          }
-                          disabled={
-                            isSending ||
-                            isConfirming
-                          }
-                          className="mt-4 flex h-[50px] w-full items-center justify-center gap-2 rounded-[13px] bg-[#111111] text-[11px] font-semibold text-white disabled:opacity-50"
-                        >
-
-                          {isSending ? (
-                            <>
-                              <Loader2
-                                size={14}
-                                className="animate-spin"
-                              />
-                              Confirm in wallet…
-                            </>
-                          ) : isConfirming ? (
-                            <>
-                              <Loader2
-                                size={14}
-                                className="animate-spin"
-                              />
-                              Confirming…
-                            </>
-                          ) : (
-                            <>
-                              Send {amount} USDC
-                              <ArrowUpRight
-                                size={14}
-                              />
-                            </>
-                          )}
-
-                        </button>
-
                       </div>
                     )}
 
-                  {/* SUCCESS */}
+                  {/* ==================================================
+                      SUCCESS
+                      ================================================== */}
 
                   {transactionComplete && (
-                    <div className="rounded-[18px] border border-[#DDEEE4] bg-[#F6FBF8] p-5 text-center">
+                    <div className="arc-status-success rounded-[20px] p-6 text-center">
 
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
+                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-[0_4px_16px_rgba(22,163,106,0.10)]">
 
                         <Check
-                          size={22}
+                          size={24}
                           strokeWidth={2}
                         />
 
                       </div>
 
-                      <h3 className="mt-4 text-[15px] font-semibold">
+                      <h3 className="mt-4 text-[16px] font-semibold text-[#17231D]">
                         Payment sent
                       </h3>
 
-                      <p className="mt-1 text-[10px] leading-5 text-[#85868E]">
+                      <p className="mt-1.5 text-[10px] leading-5 text-[#668071]">
                         {amount} USDC was sent successfully.
                       </p>
 
-                      <p className="mt-3 break-all font-mono text-[8px] text-[#999AA2]">
+                      <a
+                        href={`${EXPLORER_URL}/tx/${transactionHash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mx-auto mt-4 flex w-fit items-center gap-1.5 rounded-full bg-white px-3 py-2 text-[9px] font-semibold text-[#47735C] shadow-[0_1px_4px_rgba(22,163,106,0.08)]"
+                      >
+                        View transaction
+                        <ArrowUpRight size={11} />
+                      </a>
+
+                      <p className="mt-3 break-all font-mono text-[7px] text-[#7A9585]">
                         {transactionHash}
                       </p>
 
@@ -947,7 +1029,7 @@ export default function SendPage() {
                           resetForm();
                           refetchBalance();
                         }}
-                        className="mt-5 h-10 rounded-full bg-[#111111] px-5 text-[10px] font-semibold text-white"
+                        className="mt-5 h-10 rounded-full bg-[#11131A] px-5 text-[10px] font-semibold text-white transition hover:bg-[#272A32]"
                       >
                         Send another payment
                       </button>
@@ -955,92 +1037,102 @@ export default function SendPage() {
                     </div>
                   )}
 
-                  {!transactionComplete &&
-                    !showConfirmation && (
-                      <p className="text-center text-[10px] text-[#A0A1A8]">
-                        Your wallet will ask you to confirm the transaction.
-                      </p>
-                    )}
-
                 </div>
+
               </section>
 
-              {/* RIGHT SIDE */}
+              {/* ==================================================
+                  SIDE PANEL
+                  ================================================== */}
 
               <aside>
 
-                <div className="rounded-[22px] border border-[#E7E7EA] bg-white p-6">
+                <div className="arc-card overflow-hidden">
 
-                  <div className="flex h-[110px] items-center justify-center rounded-[16px] bg-[#F7F7F8]">
+                  <div className="relative h-[150px] overflow-hidden bg-[#0C1220]">
 
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white">
+                    <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-[#4F46E5]/20 blur-[55px]" />
 
-                      <Wallet
-                        size={29}
-                        strokeWidth={1.4}
-                        className="text-[#55565D]"
-                      />
+                    <div className="absolute -bottom-20 left-1/3 h-44 w-44 rounded-full bg-[#2563EB]/15 blur-[55px]" />
+
+                    <div className="relative flex h-full items-center justify-center">
+
+                      <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-white/10 ring-1 ring-white/15 backdrop-blur">
+
+                        <Wallet
+                          size={28}
+                          strokeWidth={1.5}
+                          className="text-white"
+                        />
+
+                      </div>
 
                     </div>
 
                   </div>
 
-                  <h2 className="mt-6 text-[19px] font-semibold tracking-[-0.03em]">
-                    Sending USDC
-                  </h2>
+                  <div className="p-6">
 
-                  <p className="mt-2 text-[12px] leading-5 text-[#7F8088]">
-                    Your payment will be signed by your connected wallet before it is submitted to Arc.
-                  </p>
+                    <div className="flex items-center gap-2">
 
-                  <div className="mt-6 space-y-4 border-t border-[#EEEEF1] pt-5">
+                      <span className="h-2 w-2 rounded-full bg-[#2563EB]" />
 
-                    <div className="flex items-center justify-between">
-
-                      <span className="text-[11px] text-[#94959D]">
-                        Asset
-                      </span>
-
-                      <span className="text-[11px] font-medium">
-                        USDC
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8D939F]">
+                        Arc Pay
                       </span>
 
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <h2 className="mt-3 text-[19px] font-semibold tracking-[-0.035em]">
+                      Send with confidence
+                    </h2>
 
-                      <span className="text-[11px] text-[#94959D]">
-                        Network
-                      </span>
+                    <p className="mt-2 text-[11px] leading-5 text-[#7D838F]">
+                      Your payment is signed by your connected wallet and settled directly on Arc.
+                    </p>
 
-                      <span className="text-[11px] font-medium">
-                        Arc Testnet
-                      </span>
+                    <div className="mt-6 space-y-3 border-t border-[#EEF0F4] pt-5">
+
+                      <SideDetail
+                        label="Asset"
+                        value="USDC"
+                      />
+
+                      <SideDetail
+                        label="Network"
+                        value="Arc Testnet"
+                      />
+
+                      <SideDetail
+                        label="Recipient"
+                        value={
+                          recipient
+                            ? recipient
+                            : "Not selected"
+                        }
+                      />
+
+                      <SideDetail
+                        label="Custody"
+                        value="Non-custodial"
+                      />
 
                     </div>
 
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="arc-soft-accent mt-6 rounded-[14px] p-3.5">
 
-                      <span className="text-[11px] text-[#94959D]">
-                        Recipient
-                      </span>
+                      <div className="flex gap-2.5">
 
-                      <span className="max-w-[160px] truncate text-right text-[10px] font-medium">
-                        {recipient ||
-                          "Not selected"}
-                      </span>
+                        <Info
+                          size={13}
+                          className="mt-0.5 shrink-0"
+                        />
 
-                    </div>
+                        <p className="text-[9px] leading-5 text-[#656A78]">
+                          Always verify the recipient before signing a transaction.
+                        </p>
 
-                    <div className="flex items-center justify-between">
-
-                      <span className="text-[11px] text-[#94959D]">
-                        Custody
-                      </span>
-
-                      <span className="text-[11px] font-medium">
-                        Non-custodial
-                      </span>
+                      </div>
 
                     </div>
 
@@ -1053,8 +1145,37 @@ export default function SendPage() {
             </div>
 
           </div>
+
         </main>
+
       </div>
+
+    </div>
+  );
+}
+
+/* ============================================================
+   SIDE DETAIL
+   ============================================================ */
+
+function SideDetail({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+
+      <span className="text-[9px] text-[#969CA7]">
+        {label}
+      </span>
+
+      <span className="max-w-[180px] truncate text-right text-[9px] font-semibold text-[#414650]">
+        {value}
+      </span>
+
     </div>
   );
 }

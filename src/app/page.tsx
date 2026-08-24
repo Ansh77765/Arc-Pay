@@ -18,6 +18,7 @@ import { UsernameModal } from "@/components/UsernameModal";
 import {
   USDC_ADDRESS,
   USDC_DECIMALS,
+  EXPLORER_URL,
 } from "@/lib/config";
 
 import {
@@ -138,7 +139,9 @@ export default function DashboardPage() {
 
           <div className="px-5 pb-16 pt-7 sm:px-8 lg:px-10">
 
-            {/* HEADER */}
+            {/* ==================================================
+                HEADER
+                ================================================== */}
 
             <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 
@@ -195,11 +198,11 @@ export default function DashboardPage() {
 
             </div>
 
-            {/* BALANCE */}
+            {/* ==================================================
+                BALANCE
+                ================================================== */}
 
             <section className="relative overflow-hidden rounded-[24px] bg-[#0C1220] shadow-[0_18px_50px_rgba(17,19,26,0.12)]">
-
-              {/* ACCENT GLOW */}
 
               <div className="pointer-events-none absolute -right-20 -top-28 h-[320px] w-[320px] rounded-full bg-[#4F46E5]/20 blur-[80px]" />
 
@@ -212,11 +215,9 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
 
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/10">
-
                       <span className="text-[14px] font-bold text-white">
                         $
                       </span>
-
                     </div>
 
                     <p className="text-[11px] font-medium text-white/60">
@@ -276,7 +277,9 @@ export default function DashboardPage() {
 
             </section>
 
-            {/* QUICK ACTIONS */}
+            {/* ==================================================
+                QUICK ACTIONS
+                ================================================== */}
 
             <div className="mt-7">
 
@@ -358,7 +361,9 @@ export default function DashboardPage() {
 
             </div>
 
-            {/* RECENT ACTIVITY */}
+            {/* ==================================================
+                RECENT ACTIVITY
+                ================================================== */}
 
             <section className="arc-card mt-7 overflow-hidden">
 
@@ -404,10 +409,12 @@ export default function DashboardPage() {
                 <div className="flex min-h-[220px] flex-col items-center justify-center px-6 text-center">
 
                   <div className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-[#F3F4F8] text-[#777D89]">
+
                     <Wallet
                       size={19}
                       strokeWidth={1.5}
                     />
+
                   </div>
 
                   <h3 className="mt-4 text-[13px] font-semibold">
@@ -439,7 +446,9 @@ export default function DashboardPage() {
 
             </section>
 
-            {/* TRUST / NETWORK */}
+            {/* ==================================================
+                TRUST / NETWORK
+                ================================================== */}
 
             <div className="mt-7 grid gap-3 md:grid-cols-3">
 
@@ -468,6 +477,10 @@ export default function DashboardPage() {
         </main>
 
       </div>
+
+      {/* ==================================================
+          MODALS
+          ================================================== */}
 
       <CreatePaymentForm
         open={createPaymentOpen}
@@ -501,6 +514,7 @@ function SectionHeading({
 }) {
   return (
     <div>
+
       <h2 className="text-[14px] font-semibold tracking-[-0.02em]">
         {title}
       </h2>
@@ -508,6 +522,7 @@ function SectionHeading({
       <p className="mt-1 text-[10px] text-[#9298A4]">
         {description}
       </p>
+
     </div>
   );
 }
@@ -525,7 +540,7 @@ function RecentActivityRow({
     activity.type === "sent";
 
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#EEF0F4] px-5 py-4 last:border-b-0 sm:px-6">
+    <div className="flex items-center justify-between gap-4 border-b border-[#EEF0F4] px-5 py-4 transition last:border-b-0 hover:bg-[#FCFCFE] sm:px-6">
 
       <div className="flex min-w-0 items-center gap-3">
 
@@ -536,6 +551,7 @@ function RecentActivityRow({
               : "bg-[#ECFAF4] text-[#16A36A]"
           }`}
         >
+
           {isSent ? (
             <ArrowUpRight
               size={15}
@@ -547,6 +563,7 @@ function RecentActivityRow({
               strokeWidth={1.8}
             />
           )}
+
         </div>
 
         <div className="min-w-0">
@@ -559,8 +576,12 @@ function RecentActivityRow({
 
           <p className="mt-1 truncate font-mono text-[9px] text-[#999FAA]">
             {isSent
-              ? `To ${shortAddress(activity.to)}`
-              : `From ${shortAddress(activity.from)}`}
+              ? `To ${shortAddress(
+                  activity.to
+                )}`
+              : `From ${shortAddress(
+                  activity.from
+                )}`}
           </p>
 
         </div>
@@ -581,7 +602,7 @@ function RecentActivityRow({
         </p>
 
         <a
-          href={`https://testnet.arcscan.app/tx/${activity.hash}`}
+          href={`${EXPLORER_URL}/tx/${activity.hash}`}
           target="_blank"
           rel="noreferrer"
           className="flex h-7 w-7 items-center justify-center rounded-full text-[#A0A5B0] transition hover:bg-[#F4F5F8] hover:text-[#4F46E5]"
@@ -616,7 +637,7 @@ function InfoCard({
   };
 
   return (
-    <div className="arc-card p-4 transition hover:shadow-[0_8px_24px_rgba(17,19,26,0.045)]">
+    <div className="arc-card p-4 transition hover:-translate-y-[1px] hover:shadow-[0_8px_24px_rgba(17,19,26,0.045)]">
 
       <div className="flex items-center gap-2">
 

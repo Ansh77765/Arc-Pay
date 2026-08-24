@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-
 import {
   ArrowUpRight,
   Check,
@@ -37,9 +36,12 @@ import {
   USERNAME_REGISTRY_ADDRESS,
 } from "@/lib/config";
 
+import { usernameRegistryAbi } from "@/lib/usernameRegistryAbi";
+
 import {
-  usernameRegistryAbi,
-} from "@/lib/usernameRegistryAbi";
+  isValidAmount,
+  shortAddress,
+} from "@/lib/format";
 
 const erc20Abi = [
   {
@@ -83,10 +85,10 @@ const erc20Abi = [
 ] as const;
 
 type RecipientType =
+  | "empty"
   | "address"
   | "username"
-  | "invalid"
-  | "empty";
+  | "invalid";
 
 export default function SendPage() {
   const {
@@ -117,27 +119,27 @@ export default function SendPage() {
   const {
     isLoading: isConfirming,
     isSuccess: transactionSuccess,
-  } =
-    useWaitForTransactionReceipt({
-      hash: transactionHash,
-    });
+  } = useWaitForTransactionReceipt({
+    hash: transactionHash,
+  });
 
   /*
    * ============================================================
-   * WALLET USDC BALANCE
+   * USDC BALANCE
    * ============================================================
    */
 
   const {
     data: balance,
     isLoading: loadingBalance,
+    refetch: refetchBalance,
   } = useReadContract({
     address: USDC_ADDRESS,
     abi: erc20Abi,
     functionName: "balanceOf",
-    args: [
-      address as `0x${string}`,
-    ],
+    args: address
+      ? [address]
+      : undefined,
     query: {
       enabled:
         isConnected &&
@@ -147,7 +149,7 @@ export default function SendPage() {
 
   /*
    * ============================================================
-   * RECIPIENT TYPE
+   * RECIPIENT
    * ============================================================
    */
 
@@ -160,8 +162,8 @@ export default function SendPage() {
       : isAddress(normalizedRecipient)
       ? "address"
       : normalizedRecipient.startsWith("@") &&
-        /^[a-z0-9_@]{4,21}$/i.test(
-          normalizedRecipient
+        /^[a-z0-9]{3,20}$/.test(
+          normalizedRecipient.slice(1)
         )
       ? "username"
       : "invalid";
@@ -175,7 +177,7 @@ export default function SendPage() {
 
   /*
    * ============================================================
-   * RESOLVE USERNAME
+   * RESOLVE @USERNAME
    * ============================================================
    */
 
@@ -184,18 +186,22 @@ export default function SendPage() {
     isLoading: resolvingUsername,
     isError: usernameResolveError,
   } = useReadContract({
-    address:
-      USERNAME_REGISTRY_ADDRESS,
+    address: USERNAME_REGISTRY_ADDRESS,
     abi: usernameRegistryAbi,
     functionName: "resolve",
     args: [username],
     query: {
       enabled:
-        recipientType ===
-        "username" &&
+        recipientType === "username" &&
         username.length >= 3,
     },
   });
+
+  /*
+   * ============================================================
+   * FINAL RECIPIENT
+   * ============================================================
+   */
 
   const recipientAddress =
     recipientType === "address"
@@ -234,23 +240,7 @@ export default function SendPage() {
 
   /*
    * ============================================================
-   * VALIDATION
-   * ============================================================
-   */
-
-  const canContinue =
-    isConnected &&
-    chainId === arcTestnet.id &&
-    recipientAddress !== "" &&
-    amountValue !== null &&
-    amountValue > 0n &&
-    !insufficientBalance &&
-    !isSending &&
-    !isConfirming;
-
-  /*
-   * ============================================================
-   * DISPLAY BALANCE
+   * BALANCE DISPLAY
    * ============================================================
    */
 
@@ -259,6 +249,35 @@ export default function SendPage() {
       ? Number(balance) /
         10 ** USDC_DECIMALS
       : null;
+
+  /*
+   * ============================================================
+   * VALIDATION
+   * ============================================================
+   */
+
+  const recipientReady =
+    recipientType === "address" ||
+    (recipientType === "username" &&
+      !!resolvedAddress &&
+      resolvedAddress !== zeroAddress &&
+      !usernameResolveError);
+
+  const amountReady =
+    amountValue !== null &&
+    amountValue > 0n;
+
+  const networkReady =
+    chainId === arcTestnet.id;
+
+  const canContinue =
+    isConnected &&
+    networkReady &&
+    recipientReady &&
+    amountReady &&
+    !insufficientBalance &&
+    !isSending &&
+    !isConfirming;
 
   /*
    * ============================================================
@@ -278,38 +297,29 @@ export default function SendPage() {
 
     if (chainId !== arcTestnet.id) {
       setError(
-        "Switch to Arc Testnet first."
+        "Switch your wallet to Arc Testnet."
       );
       return;
     }
 
-    if (
-      recipientType ===
-      "empty"
-    ) {
+    if (recipientType === "empty") {
       setError(
         "Enter a wallet address or @username."
       );
       return;
     }
 
-    if (
-      recipientType ===
-      "invalid"
-    ) {
+    if (recipientType === "invalid") {
       setError(
         "Enter a valid wallet address or @username."
       );
       return;
     }
 
-    if (
-      recipientType ===
-      "username"
-    ) {
+    if (recipientType === "username") {
       if (resolvingUsername) {
         setError(
-          "Still resolving the username."
+          "Still checking the username. Please wait."
         );
         return;
       }
@@ -317,23 +327,28 @@ export default function SendPage() {
       if (
         usernameResolveError ||
         !resolvedAddress ||
-        resolvedAddress ===
-          zeroAddress
+        resolvedAddress === zeroAddress
       ) {
         setError(
-          `@${username} could not be resolved.`
+          `@${username} is not registered.`
         );
         return;
       }
     }
 
+    if (!isValidAmount(amount)) {
+      setError(
+        "Enter a valid USDC amount."
+      );
+      return;
+    }
+
     if (
-      amountValue ===
-        null ||
+      amountValue === null ||
       amountValue <= 0n
     ) {
       setError(
-        "Enter a valid USDC amount greater than 0."
+        "Enter a valid USDC amount."
       );
       return;
     }
@@ -346,8 +361,9 @@ export default function SendPage() {
     }
 
     if (
+      recipientAddress &&
       recipientAddress.toLowerCase() ===
-      address.toLowerCase()
+        address.toLowerCase()
     ) {
       setError(
         "You cannot send USDC to yourself."
@@ -367,10 +383,20 @@ export default function SendPage() {
   function handleSend() {
     setError(null);
 
+    if (!recipientAddress) {
+      setError(
+        "Recipient address could not be resolved."
+      );
+      return;
+    }
+
     if (
-      !recipientAddress ||
-      !amountValue
+      amountValue === null ||
+      amountValue <= 0n
     ) {
+      setError(
+        "Enter a valid amount."
+      );
       return;
     }
 
@@ -383,6 +409,31 @@ export default function SendPage() {
         amountValue,
       ],
     });
+  }
+
+  /*
+   * ============================================================
+   * MAX
+   * ============================================================
+   */
+
+  function handleMax() {
+    if (
+      balance === undefined ||
+      balance === 0n
+    ) {
+      return;
+    }
+
+    const value =
+      Number(balance) /
+      10 ** USDC_DECIMALS;
+
+    setAmount(
+      value.toString()
+    );
+
+    setError(null);
   }
 
   /*
@@ -445,8 +496,6 @@ export default function SendPage() {
 
               <section className="rounded-[22px] border border-[#E7E7EA] bg-white">
 
-                {/* CARD HEADER */}
-
                 <div className="border-b border-[#EEEEF1] px-6 py-5">
 
                   <div className="flex items-center gap-3">
@@ -473,6 +522,7 @@ export default function SendPage() {
                     </div>
 
                   </div>
+
                 </div>
 
                 <div className="space-y-7 p-6">
@@ -488,42 +538,33 @@ export default function SendPage() {
                       </label>
 
                       <span className="text-[10px] text-[#A0A1A8]">
-                        Address or username
+                        Address or @username
                       </span>
 
                     </div>
 
                     <div
-                      className={`flex h-[54px] items-center rounded-[14px] border bg-white px-4 transition focus-within:border-[#BDBDC5] ${
-                        recipientType ===
-                        "invalid"
+                      className={`flex h-[54px] items-center rounded-[14px] border bg-white px-4 transition ${
+                        recipientType === "invalid"
                           ? "border-[#E7CACA]"
-                          : recipientType ===
-                            "username" &&
+                          : recipientType === "username" &&
                             resolvedAddress &&
-                            resolvedAddress !==
-                              zeroAddress
+                            resolvedAddress !== zeroAddress
                           ? "border-[#CDE6D7]"
                           : "border-[#E2E2E6]"
                       }`}
                     >
 
-                      <span className="mr-2 text-[13px] font-medium text-[#9A9BA2]">
-                        {recipientType ===
-                        "username"
-                          ? "@"
-                          : ""}
-                      </span>
-
                       <input
                         type="text"
-                        value={
-                          recipient
-                        }
-                        onChange={(e) =>
+                        value={recipient}
+                        onChange={(e) => {
                           setRecipient(
                             e.target.value
-                          )}
+                          );
+                          setError(null);
+                          setShowConfirmation(false);
+                        }}
                         placeholder="0x... or @username"
                         autoComplete="off"
                         spellCheck={false}
@@ -538,28 +579,27 @@ export default function SendPage() {
                       )}
 
                       {!resolvingUsername &&
-                        recipientType ===
-                          "username" &&
+                        recipientType === "username" &&
                         resolvedAddress &&
-                        resolvedAddress !==
-                          zeroAddress && (
+                        resolvedAddress !== zeroAddress && (
                           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF7EF] text-[#31A66A]">
-                            <Check
-                              size={14}
-                            />
+                            <Check size={14} />
                           </div>
                         )}
 
                     </div>
 
-                    {/* RESOLUTION MESSAGE */}
+                    {recipientType === "username" &&
+                      resolvingUsername && (
+                        <p className="mt-2 text-[9px] text-[#999AA2]">
+                          Resolving @{username}…
+                        </p>
+                      )}
 
-                    {recipientType ===
-                      "username" &&
+                    {recipientType === "username" &&
                       !resolvingUsername &&
                       resolvedAddress &&
-                      resolvedAddress !==
-                        zeroAddress && (
+                      resolvedAddress !== zeroAddress && (
                         <p className="mt-2 text-[9px] font-medium text-[#31A66A]">
                           @{username} resolves to{" "}
                           {shortAddress(
@@ -568,21 +608,18 @@ export default function SendPage() {
                         </p>
                       )}
 
-                    {recipientType ===
-                      "username" &&
+                    {recipientType === "username" &&
                       !resolvingUsername &&
                       (!resolvedAddress ||
-                        resolvedAddress ===
-                          zeroAddress) && (
+                        resolvedAddress === zeroAddress) && (
                         <p className="mt-2 text-[9px] text-[#D65A5A]">
                           @{username} is not registered.
                         </p>
                       )}
 
-                    {recipientType ===
-                      "invalid" && (
+                    {recipientType === "invalid" && (
                       <p className="mt-2 text-[9px] text-[#D65A5A]">
-                        Enter a valid 0x wallet address or @username.
+                        Enter a valid 0x address or @username.
                       </p>
                     )}
 
@@ -600,21 +637,10 @@ export default function SendPage() {
 
                       <button
                         type="button"
-                        onClick={() => {
-                          if (
-                            formattedBalance !==
-                            null
-                          ) {
-                            setAmount(
-                              formattedBalance.toString()
-                            );
-                          }
-                        }}
+                        onClick={handleMax}
                         disabled={
-                          balance ===
-                            undefined ||
-                          balance ===
-                            0n
+                          balance === undefined ||
+                          balance === 0n
                         }
                         className="text-[10px] font-medium text-[#777880] disabled:opacity-40"
                       >
@@ -630,10 +656,13 @@ export default function SendPage() {
                         inputMode="decimal"
                         placeholder="0.00"
                         value={amount}
-                        onChange={(e) =>
+                        onChange={(e) => {
                           setAmount(
                             e.target.value
-                          )}
+                          );
+                          setError(null);
+                          setShowConfirmation(false);
+                        }}
                         className="min-w-0 flex-1 bg-transparent text-[28px] font-semibold tracking-[-0.04em] text-[#111111] outline-none placeholder:text-[#B8B9BE]"
                       />
 
@@ -666,8 +695,7 @@ export default function SendPage() {
                       <span>
                         {loadingBalance
                           ? "Loading…"
-                          : formattedBalance !==
-                            null
+                          : formattedBalance !== null
                           ? `${formattedBalance.toFixed(
                               2
                             )} USDC`
@@ -716,19 +744,18 @@ export default function SendPage() {
 
                       <span
                         className={`text-[10px] font-medium ${
-                          chainId ===
-                          arcTestnet.id
+                          networkReady
                             ? "text-[#31A66A]"
                             : "text-[#D65A5A]"
                         }`}
                       >
-                        {chainId ===
-                        arcTestnet.id
+                        {networkReady
                           ? "Connected"
-                          : "Switch network"}
+                          : "Wrong network"}
                       </span>
 
                     </div>
+
                   </div>
 
                   {/* INFO */}
@@ -741,7 +768,7 @@ export default function SendPage() {
                     />
 
                     <p className="text-[10px] leading-5 text-[#777880]">
-                      You can send directly to a wallet address or use an Arc Pay username such as @ansh123.
+                      Send directly to a wallet address or use an Arc Pay username such as @ansh123.
                     </p>
 
                   </div>
@@ -767,20 +794,21 @@ export default function SendPage() {
 
                   {/* CONTINUE */}
 
-                  {!transactionComplete && (
-                    <button
-                      type="button"
-                      onClick={
-                        handleContinue
-                      }
-                      disabled={
-                        !canContinue
-                      }
-                      className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#111111] text-[12px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
-                    >
-                      Continue
-                    </button>
-                  )}
+                  {!showConfirmation &&
+                    !transactionComplete && (
+                      <button
+                        type="button"
+                        onClick={
+                          handleContinue
+                        }
+                        disabled={
+                          !canContinue
+                        }
+                        className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#111111] text-[12px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
+                      >
+                        Continue
+                      </button>
+                    )}
 
                   {/* CONFIRMATION */}
 
@@ -807,17 +835,14 @@ export default function SendPage() {
                             onClick={() =>
                               setShowConfirmation(
                                 false
-                              )
-                            }
+                              )}
                             disabled={
                               isSending ||
                               isConfirming
                             }
                             className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E2E2E5] bg-white text-[#777880]"
                           >
-                            <X
-                              size={14}
-                            />
+                            <X size={14} />
                           </button>
 
                         </div>
@@ -874,7 +899,7 @@ export default function SendPage() {
                                 size={14}
                                 className="animate-spin"
                               />
-                              Sending…
+                              Confirming…
                             </>
                           ) : (
                             <>
@@ -918,9 +943,10 @@ export default function SendPage() {
 
                       <button
                         type="button"
-                        onClick={
-                          resetForm
-                        }
+                        onClick={() => {
+                          resetForm();
+                          refetchBalance();
+                        }}
                         className="mt-5 h-10 rounded-full bg-[#111111] px-5 text-[10px] font-semibold text-white"
                       >
                         Send another payment
@@ -956,6 +982,7 @@ export default function SendPage() {
                       />
 
                     </div>
+
                   </div>
 
                   <h2 className="mt-6 text-[19px] font-semibold tracking-[-0.03em]">
@@ -992,16 +1019,15 @@ export default function SendPage() {
 
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
 
                       <span className="text-[11px] text-[#94959D]">
                         Recipient
                       </span>
 
-                      <span className="max-w-[150px] truncate text-[10px] font-medium">
-                        {recipient
-                          ? recipient
-                          : "Not selected"}
+                      <span className="max-w-[160px] truncate text-right text-[10px] font-medium">
+                        {recipient ||
+                          "Not selected"}
                       </span>
 
                     </div>
@@ -1021,29 +1047,14 @@ export default function SendPage() {
                   </div>
 
                 </div>
+
               </aside>
 
             </div>
+
           </div>
         </main>
       </div>
     </div>
   );
-}
-
-/* ================================================================
-   HELPER
-   ================================================================ */
-
-function shortAddress(
-  address: string
-) {
-  if (!address) {
-    return "";
-  }
-
-  return `${address.slice(
-    0,
-    6
-  )}...${address.slice(-4)}`;
 }

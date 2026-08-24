@@ -9,10 +9,11 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+
 import {
   useReadContract,
-  useWriteContract,
   useWaitForTransactionReceipt,
+  useWriteContract,
 } from "wagmi";
 
 import { USERNAME_REGISTRY_ADDRESS } from "@/lib/config";
@@ -43,13 +44,15 @@ export function UsernameModal({
   const valid = USERNAME_REGEX.test(normalized);
 
   const shortAddress = useMemo(() => {
-    if (!address) return "Wallet not connected";
+    if (!address) {
+      return "Wallet not connected";
+    }
 
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   }, [address]);
 
   /*
-   * LIVE BLOCKCHAIN AVAILABILITY
+   * LIVE USERNAME AVAILABILITY
    */
 
   const {
@@ -78,7 +81,7 @@ export function UsernameModal({
   } = useWriteContract();
 
   /*
-   * WAIT FOR TRANSACTION
+   * WAIT FOR BLOCKCHAIN CONFIRMATION
    */
 
   const {
@@ -88,22 +91,37 @@ export function UsernameModal({
     hash: registrationHash,
   });
 
+  /*
+   * RESET WHEN MODAL OPENS/CLOSES
+   */
+
   useEffect(() => {
     if (!open) {
       setUsername("");
       setReserved(false);
+      setCopied(false);
     }
   }, [open]);
 
+  /*
+   * REGISTRATION SUCCESS
+   */
+
   useEffect(() => {
-    if (registrationSuccess) {
-      setReserved(true);
-      refetchAvailability();
+    if (!registrationSuccess) {
+      return;
     }
+
+    setReserved(true);
+    refetchAvailability();
   }, [
     registrationSuccess,
     refetchAvailability,
   ]);
+
+  /*
+   * USERNAME INPUT
+   */
 
   function handleUsernameChange(value: string) {
     const cleaned = value
@@ -115,12 +133,17 @@ export function UsernameModal({
     setReserved(false);
   }
 
+  /*
+   * REGISTER ON ARC
+   */
+
   function handleReserve() {
     if (
       !valid ||
       available !== true ||
       isRegistering ||
-      isConfirming
+      isConfirming ||
+      reserved
     ) {
       return;
     }
@@ -133,8 +156,14 @@ export function UsernameModal({
     });
   }
 
+  /*
+   * COPY WALLET ADDRESS
+   */
+
   async function copyAddress() {
-    if (!address) return;
+    if (!address) {
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(address);
@@ -149,16 +178,20 @@ export function UsernameModal({
     }
   }
 
+  /*
+   * CLOSE
+   */
+
   function handleClose() {
-    if (
-      !isRegistering &&
-      !isConfirming
-    ) {
-      setUsername("");
-      setReserved(false);
-      setCopied(false);
-      onClose();
+    if (isRegistering || isConfirming) {
+      return;
     }
+
+    setUsername("");
+    setReserved(false);
+    setCopied(false);
+
+    onClose();
   }
 
   if (!open) {
@@ -259,6 +292,7 @@ export function UsernameModal({
               </div>
 
               <div>
+
                 <p className="text-[11px] font-bold tracking-[0.16em] text-[#34363C]">
                   ARC PAY
                 </p>
@@ -266,8 +300,8 @@ export function UsernameModal({
                 <p className="mt-0.5 text-[6px] font-medium uppercase tracking-[0.2em] text-[#777A83]">
                   Payment identity
                 </p>
-              </div>
 
+              </div>
             </div>
 
             {/* TESTNET */}
@@ -319,7 +353,6 @@ export function UsernameModal({
               </div>
 
             </div>
-
           </div>
 
           {/* INPUT */}
@@ -396,6 +429,8 @@ export function UsernameModal({
 
               </div>
             </div>
+
+            {/* VALIDATION */}
 
             {!valid &&
               username.length > 0 && (

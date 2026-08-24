@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  ExternalLink,
   Plus,
   Wallet,
 } from "lucide-react";
@@ -18,6 +19,11 @@ import {
   USDC_ADDRESS,
   USDC_DECIMALS,
 } from "@/lib/config";
+
+import {
+  getWalletActivity,
+  type ActivityItem,
+} from "@/lib/activity";
 
 const erc20Abi = [
   {
@@ -44,6 +50,12 @@ export default function DashboardPage() {
     useState(false);
 
   const [usernameOpen, setUsernameOpen] =
+    useState(false);
+
+  const [activities, setActivities] =
+    useState<ActivityItem[]>([]);
+
+  const [activityLoading, setActivityLoading] =
     useState(false);
 
   const { address, isConnected } =
@@ -80,6 +92,51 @@ export default function DashboardPage() {
         ).toFixed(2)
       : "0.00";
 
+  /*
+   * ============================================================
+   * REAL ACTIVITY
+   * ============================================================
+   */
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadActivity() {
+      if (!address) {
+        setActivities([]);
+        return;
+      }
+
+      setActivityLoading(true);
+
+      try {
+        const result =
+          await getWalletActivity(address);
+
+        if (!cancelled) {
+          setActivities(result);
+        }
+      } catch {
+        if (!cancelled) {
+          setActivities([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setActivityLoading(false);
+        }
+      }
+    }
+
+    loadActivity();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
+
+  const recentActivities =
+    activities.slice(0, 3);
+
   return (
     <div className="min-h-screen bg-white text-[#111111]">
 
@@ -115,8 +172,6 @@ export default function DashboardPage() {
 
               <div className="flex flex-wrap items-center gap-2">
 
-                {/* RESERVE USERNAME */}
-
                 <button
                   type="button"
                   onClick={() =>
@@ -126,8 +181,6 @@ export default function DashboardPage() {
                 >
                   Reserve username
                 </button>
-
-                {/* CREATE PAYMENT */}
 
                 <button
                   type="button"
@@ -273,13 +326,11 @@ export default function DashboardPage() {
                 </p>
 
                 <span className="mt-4 inline-flex items-center gap-1 text-[10px] font-semibold text-[#55565D]">
-
                   Send payment
 
                   <span className="transition-transform group-hover:translate-x-0.5">
                     →
                   </span>
-
                 </span>
 
               </a>
@@ -313,40 +364,71 @@ export default function DashboardPage() {
 
               </div>
 
-              <div className="flex min-h-[240px] flex-col items-center justify-center px-6 text-center">
+              {activityLoading ? (
 
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F5F6]">
+                <div className="flex min-h-[240px] items-center justify-center">
 
-                  <Wallet
-                    size={19}
-                    strokeWidth={1.5}
-                    className="text-[#777880]"
-                  />
+                  <p className="text-[10px] text-[#999AA2]">
+                    Loading activity…
+                  </p>
 
                 </div>
 
-                <h3 className="mt-4 text-[13px] font-semibold text-[#33343A]">
-                  No activity yet
-                </h3>
+              ) : recentActivities.length === 0 ? (
 
-                <p className="mt-1.5 max-w-[280px] text-[10px] leading-5 text-[#999AA2]">
-                  Your sent and received USDC
-                  payments will appear here.
-                </p>
+                <div className="flex min-h-[240px] flex-col items-center justify-center px-6 text-center">
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCreatePaymentOpen(true)
-                  }
-                  className="mt-5 flex items-center gap-2 rounded-full bg-[#F5F5F6] px-4 py-2.5 text-[10px] font-semibold text-[#55565D] transition hover:bg-[#EEEEF0]"
-                >
-                  <Plus size={13} />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F5F6]">
 
-                  Create payment
-                </button>
+                    <Wallet
+                      size={19}
+                      strokeWidth={1.5}
+                      className="text-[#777880]"
+                    />
 
-              </div>
+                  </div>
+
+                  <h3 className="mt-4 text-[13px] font-semibold text-[#33343A]">
+                    No activity yet
+                  </h3>
+
+                  <p className="mt-1.5 max-w-[280px] text-[10px] leading-5 text-[#999AA2]">
+                    Your sent and received USDC
+                    payments will appear here.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCreatePaymentOpen(true)
+                    }
+                    className="mt-5 flex items-center gap-2 rounded-full bg-[#F5F5F6] px-4 py-2.5 text-[10px] font-semibold text-[#55565D] transition hover:bg-[#EEEEF0]"
+                  >
+                    <Plus size={13} />
+
+                    Create payment
+                  </button>
+
+                </div>
+
+              ) : (
+
+                <div>
+
+                  {recentActivities.map(
+                    (activity, index) => (
+                      <RecentActivityRow
+                        key={`${activity.hash}-${activity.type}-${index}`}
+                        activity={
+                          activity
+                        }
+                      />
+                    )
+                  )}
+
+                </div>
+
+              )}
 
             </section>
 
@@ -396,6 +478,91 @@ export default function DashboardPage() {
 
     </div>
   );
+}
+
+function RecentActivityRow({
+  activity,
+}: {
+  activity: ActivityItem;
+}) {
+  const isSent =
+    activity.type === "sent";
+
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-[#EEEEF1] px-6 py-4 last:border-b-0">
+
+      <div className="flex min-w-0 items-center gap-3">
+
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F5F5F6]">
+
+          {isSent ? (
+            <ArrowUpRight
+              size={15}
+              strokeWidth={1.7}
+            />
+          ) : (
+            <ArrowDownLeft
+              size={15}
+              strokeWidth={1.7}
+            />
+          )}
+
+        </div>
+
+        <div className="min-w-0">
+
+          <p className="text-[11px] font-semibold">
+            {isSent
+              ? "USDC sent"
+              : "USDC received"}
+          </p>
+
+          <p className="mt-1 truncate font-mono text-[9px] text-[#999AA2]">
+            {isSent
+              ? `To ${shortAddress(activity.to)}`
+              : `From ${shortAddress(activity.from)}`}
+          </p>
+
+        </div>
+
+      </div>
+
+      <div className="flex shrink-0 items-center gap-3">
+
+        <p
+          className={`text-[11px] font-semibold ${
+            isSent
+              ? "text-[#D65A5A]"
+              : "text-[#31A66A]"
+          }`}
+        >
+          {isSent ? "-" : "+"}
+          {activity.amount} USDC
+        </p>
+
+        <a
+          href={`https://testnet.arcscan.app/tx/${activity.hash}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-[#999AA2] transition hover:text-[#111111]"
+          title="View transaction"
+        >
+          <ExternalLink size={12} />
+        </a>
+
+      </div>
+
+    </div>
+  );
+}
+
+function shortAddress(
+  address: string
+) {
+  return `${address.slice(
+    0,
+    6
+  )}...${address.slice(-4)}`;
 }
 
 function InfoCard({

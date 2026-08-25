@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -77,13 +77,14 @@ export function PendingRequests() {
     useState<string | null>(null);
 
   /*
-   * Extra local lock.
+   * Synchronous Pay lock.
    *
-   * This prevents the same click from calling
-   * writeContract more than once.
+   * useRef is used instead of useState because
+   * the ref changes immediately. This prevents
+   * two rapid clicks from creating two wallet
+   * transactions before React re-renders.
    */
-  const [payLocked, setPayLocked] =
-    useState(false);
+  const payLockRef = useRef(false);
 
   const {
     writeContract,
@@ -171,14 +172,15 @@ export function PendingRequests() {
     paymentRequest: PaymentRequest
   ) {
     /*
-     * HARD STOP.
+     * HARD SYNCHRONOUS STOP.
      *
-     * Once Pay has been clicked, nothing else can
-     * trigger another wallet request until this
-     * transaction finishes or fails.
+     * This runs before React state updates,
+     * so a second rapid click cannot call
+     * writeContract() again.
      */
+
     if (
-      payLocked ||
+      payLockRef.current ||
       payingId !== null ||
       walletPending ||
       confirming
@@ -186,10 +188,12 @@ export function PendingRequests() {
       return;
     }
 
-    setPayLocked(true);
+    payLockRef.current = true;
+
     setPayingId(
       paymentRequest.id
     );
+
     setError(null);
 
     try {
@@ -209,7 +213,8 @@ export function PendingRequests() {
         ],
       });
     } catch {
-      setPayLocked(false);
+      payLockRef.current = false;
+
       setPayingId(null);
 
       setError(
@@ -232,7 +237,7 @@ export function PendingRequests() {
       return;
     }
 
-    setPayLocked(false);
+    payLockRef.current = false;
     setPayingId(null);
   }, [walletError]);
 
@@ -282,14 +287,14 @@ export function PendingRequests() {
             )
         );
 
-        setPayLocked(false);
+        payLockRef.current = false;
         setPayingId(null);
       } catch {
         setError(
           "Payment succeeded, but the request status could not be updated."
         );
 
-        setPayLocked(false);
+        payLockRef.current = false;
         setPayingId(null);
       }
     }
@@ -311,7 +316,7 @@ export function PendingRequests() {
     id: string
   ) {
     if (
-      payLocked ||
+      payLockRef.current ||
       walletPending ||
       confirming
     ) {
@@ -436,7 +441,7 @@ export function PendingRequests() {
                 request.id;
 
               const busy =
-                payLocked ||
+                payLockRef.current ||
                 isThisRequestPaying ||
                 walletPending ||
                 confirming ||

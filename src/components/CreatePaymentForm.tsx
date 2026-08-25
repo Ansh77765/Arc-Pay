@@ -14,6 +14,7 @@ import {
 import {
   useAccount,
   useReadContract,
+  useSignMessage,
 } from "wagmi";
 
 import {
@@ -35,6 +36,10 @@ import {
   shortAddress,
 } from "@/lib/format";
 
+import {
+  authenticateWallet,
+} from "@/lib/walletAuth";
+
 type CreatePaymentFormProps = {
   open: boolean;
   onClose: () => void;
@@ -49,6 +54,10 @@ export function CreatePaymentForm({
     isConnected,
     chainId,
   } = useAccount();
+
+  const {
+    signMessageAsync,
+  } = useSignMessage();
 
   const [username, setUsername] =
     useState("");
@@ -173,13 +182,6 @@ export function CreatePaymentForm({
    * ============================================================
    * CREATE REQUEST
    * ============================================================
-   *
-   * IMPORTANT:
-   *
-   * This does NOT call writeContract().
-   * Therefore it does NOT open a wallet popup.
-   *
-   * It simply creates a pending request in Supabase.
    */
 
   async function handleRequest(
@@ -269,6 +271,29 @@ export function CreatePaymentForm({
     setSubmitting(true);
 
     try {
+      /*
+       * ========================================================
+       * WALLET AUTHENTICATION
+       * ========================================================
+       *
+       * This opens a SIGN MESSAGE popup.
+       *
+       * It is NOT a blockchain transaction.
+       * No USDC is sent.
+       * No gas is paid.
+       */
+
+      await authenticateWallet(
+        address,
+        signMessageAsync
+      );
+
+      /*
+       * ========================================================
+       * CREATE REQUEST
+       * ========================================================
+       */
+
       const response =
         await fetch(
           "/api/requests",
@@ -311,6 +336,11 @@ export function CreatePaymentForm({
 
       setRequestCreated(true);
     } catch (error) {
+      /*
+       * Wallet rejection should be shown
+       * as a normal error instead of a crash.
+       */
+
       setFormError(
         error instanceof Error
           ? error.message
@@ -447,8 +477,6 @@ export function CreatePaymentForm({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
 
-      {/* BACKDROP */}
-
       <button
         type="button"
         aria-label="Close"
@@ -456,11 +484,7 @@ export function CreatePaymentForm({
         className="absolute inset-0 bg-black/[0.18] backdrop-blur-[3px]"
       />
 
-      {/* MODAL */}
-
       <div className="relative z-10 w-full max-w-[460px] overflow-hidden rounded-[24px] border border-[#E2E2E5] bg-white shadow-[0_30px_90px_-35px_rgba(0,0,0,.28)]">
-
-        {/* CLOSE */}
 
         <button
           type="button"
@@ -474,8 +498,6 @@ export function CreatePaymentForm({
             strokeWidth={1.8}
           />
         </button>
-
-        {/* HEADER */}
 
         <div className="border-b border-[#EEEEF1] px-6 pb-5 pt-6">
 
@@ -521,16 +543,12 @@ export function CreatePaymentForm({
           </div>
         </div>
 
-        {/* CONTENT */}
-
         <div className="p-6">
 
           <form
             onSubmit={handleRequest}
             className="space-y-5"
           >
-
-            {/* FROM USERNAME */}
 
             <div>
 
@@ -646,8 +664,6 @@ export function CreatePaymentForm({
 
             </div>
 
-            {/* AMOUNT */}
-
             <div>
 
               <div className="mb-2 flex items-center justify-between">
@@ -698,8 +714,6 @@ export function CreatePaymentForm({
 
             </div>
 
-            {/* REQUESTER */}
-
             <div className="rounded-[15px] border border-[#E7E7EA] bg-[#F7F7F8] p-3.5">
 
               <div className="flex items-center gap-3">
@@ -745,8 +759,6 @@ export function CreatePaymentForm({
 
             </div>
 
-            {/* ERROR */}
-
             {formError && (
               <div className="flex items-start gap-3 rounded-[14px] border border-[#F2D5D5] bg-[#FFF8F8] px-4 py-3.5">
 
@@ -770,8 +782,6 @@ export function CreatePaymentForm({
               </div>
             )}
 
-            {/* REQUEST BUTTON */}
-
             <button
               type="submit"
               disabled={!canRequest}
@@ -784,7 +794,7 @@ export function CreatePaymentForm({
                     size={15}
                     className="animate-spin"
                   />
-                  Sending request…
+                  Verifying wallet…
                 </>
               ) : !isConnected ? (
                 "Connect your wallet to continue"
@@ -809,8 +819,6 @@ export function CreatePaymentForm({
 
             </button>
 
-            {/* INFO */}
-
             <div className="flex items-start justify-center gap-2 px-3">
 
               <CheckCircle2
@@ -819,9 +827,8 @@ export function CreatePaymentForm({
               />
 
               <p className="max-w-[330px] text-center text-[9px] leading-5 text-[#999AA2]">
-                No wallet transaction is made when
-                requesting. The recipient will pay
-                when they approve your request.
+                A wallet signature is required to verify ownership.
+                No blockchain transaction is made when requesting.
               </p>
 
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -8,30 +8,22 @@ import {
   CircleAlert,
   Loader2,
   ShieldCheck,
-  ExternalLink,
   X,
 } from "lucide-react";
 
 import {
   useAccount,
   useReadContract,
-  useWaitForTransactionReceipt,
-  useWriteContract,
 } from "wagmi";
 
 import {
-  isAddress,
-  parseUnits,
   zeroAddress,
 } from "viem";
 
 import { arcTestnet } from "@/lib/chain";
 
 import {
-  USDC_ADDRESS,
-  USDC_DECIMALS,
   USERNAME_REGISTRY_ADDRESS,
-  EXPLORER_URL,
 } from "@/lib/config";
 
 import {
@@ -47,36 +39,6 @@ type CreatePaymentFormProps = {
   open: boolean;
   onClose: () => void;
 };
-
-/*
- * ============================================================
- * USDC ABI
- * ============================================================
- */
-
-const erc20Abi = [
-  {
-    type: "function",
-    name: "transfer",
-    stateMutability: "nonpayable",
-    inputs: [
-      {
-        name: "to",
-        type: "address",
-      },
-      {
-        name: "amount",
-        type: "uint256",
-      },
-    ],
-    outputs: [
-      {
-        name: "",
-        type: "bool",
-      },
-    ],
-  },
-] as const;
 
 export function CreatePaymentForm({
   open,
@@ -97,29 +59,11 @@ export function CreatePaymentForm({
   const [formError, setFormError] =
     useState<string | null>(null);
 
-  const [hasSubmitted, setHasSubmitted] =
+  const [submitting, setSubmitting] =
     useState(false);
 
-  /*
-   * ============================================================
-   * WALLET TRANSACTION
-   * ============================================================
-   */
-
-  const {
-    writeContract,
-    data: transactionHash,
-    isPending: isSending,
-    error: transactionError,
-  } = useWriteContract();
-
-  const {
-    isLoading: isConfirming,
-    isSuccess: transactionSuccess,
-  } =
-    useWaitForTransactionReceipt({
-      hash: transactionHash,
-    });
+  const [requestCreated, setRequestCreated] =
+    useState(false);
 
   /*
    * ============================================================
@@ -133,7 +77,31 @@ export function CreatePaymentForm({
 
   /*
    * ============================================================
-   * USERNAME
+   * CURRENT USERNAME
+   * ============================================================
+   */
+
+  const {
+    data: registeredUsername,
+    isLoading: loadingUsername,
+  } = useReadContract({
+    address:
+      USERNAME_REGISTRY_ADDRESS,
+    abi: usernameRegistryAbi,
+    functionName: "usernameOf",
+    args: address
+      ? [address]
+      : undefined,
+    query: {
+      enabled:
+        open &&
+        !!address,
+    },
+  });
+
+  /*
+   * ============================================================
+   * RECIPIENT USERNAME
    * ============================================================
    */
 
@@ -150,7 +118,7 @@ export function CreatePaymentForm({
 
   /*
    * ============================================================
-   * RESOLVE USERNAME
+   * RESOLVE RECIPIENT
    * ============================================================
    */
 
@@ -163,9 +131,9 @@ export function CreatePaymentForm({
       USERNAME_REGISTRY_ADDRESS,
     abi: usernameRegistryAbi,
     functionName: "resolve",
-    args: [
-      normalizedUsername,
-    ],
+    args: usernameValid
+      ? [normalizedUsername]
+      : undefined,
     query: {
       enabled:
         open &&
@@ -181,27 +149,6 @@ export function CreatePaymentForm({
 
   /*
    * ============================================================
-   * AMOUNT
-   * ============================================================
-   */
-
-  const amountValue = useMemo(() => {
-    if (!amount.trim()) {
-      return null;
-    }
-
-    try {
-      return parseUnits(
-        amount.trim(),
-        USDC_DECIMALS
-      );
-    } catch {
-      return null;
-    }
-  }, [amount]);
-
-  /*
-   * ============================================================
    * VALIDATION
    * ============================================================
    */
@@ -212,27 +159,30 @@ export function CreatePaymentForm({
     !usernameResolveError;
 
   const amountReady =
-    amountValue !== null &&
-    amountValue > 0n &&
     isValidAmount(amount);
 
-  const canPay =
+  const canRequest =
     isConnected &&
     onArcTestnet &&
+    !!registeredUsername &&
     recipientReady &&
     amountReady &&
-    !isSending &&
-    !isConfirming;
+    !submitting;
 
   /*
    * ============================================================
-   * PAY
+   * CREATE REQUEST
    * ============================================================
    *
-   * This writeContract() call opens the user's wallet popup.
+   * IMPORTANT:
+   *
+   * This does NOT call writeContract().
+   * Therefore it does NOT open a wallet popup.
+   *
+   * It simply creates a pending request in Supabase.
    */
 
-  function handlePay(
+  async function handleRequest(
     e: React.FormEvent
   ) {
     e.preventDefault();
@@ -248,14 +198,28 @@ export function CreatePaymentForm({
 
     if (chainId !== arcTestnet.id) {
       setFormError(
-        "Switch your wallet to Arc Testnet first."
+        "Switch to Arc Testnet first."
+      );
+      return;
+    }
+
+    if (!registeredUsername) {
+      setFormError(
+        "You need a username before requesting payment."
+      );
+      return;
+    }
+
+    if (loadingUsername) {
+      setFormError(
+        "Still loading your username. Please wait."
       );
       return;
     }
 
     if (!username.trim()) {
       setFormError(
-        "Enter a username."
+        "Enter the username you want to request from."
       );
       return;
     }
@@ -293,42 +257,68 @@ export function CreatePaymentForm({
     }
 
     if (
-      amountValue === null ||
-      amountValue <= 0n
-    ) {
-      setFormError(
-        "Enter a valid USDC amount."
-      );
-      return;
-    }
-
-    if (
       recipientAddress.toLowerCase() ===
       address.toLowerCase()
     ) {
       setFormError(
-        "You cannot pay yourself."
+        "You cannot request payment from yourself."
       );
       return;
     }
 
-    setHasSubmitted(true);
+    setSubmitting(true);
 
-    /*
-     * ========================================================
-     * THIS OPENS THE WALLET POPUP
-     * ========================================================
-     */
+    try {
+      const response =
+        await fetch(
+          "/api/requests",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              requesterWallet:
+                address,
 
-    writeContract({
-      address: USDC_ADDRESS,
-      abi: erc20Abi,
-      functionName: "transfer",
-      args: [
-        recipientAddress,
-        amountValue,
-      ],
-    });
+              requesterUsername:
+                String(
+                  registeredUsername
+                ),
+
+              recipientWallet:
+                recipientAddress,
+
+              recipientUsername:
+                normalizedUsername,
+
+              amount:
+                amount.trim(),
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "Could not create payment request."
+        );
+      }
+
+      setRequestCreated(true);
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Could not create payment request."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   /*
@@ -341,36 +331,18 @@ export function CreatePaymentForm({
     setUsername("");
     setAmount("");
     setFormError(null);
-    setHasSubmitted(false);
+    setSubmitting(false);
+    setRequestCreated(false);
   }
 
   function handleClose() {
-    if (
-      isSending ||
-      isConfirming
-    ) {
+    if (submitting) {
       return;
     }
 
     resetForm();
     onClose();
   }
-
-  /*
-   * ============================================================
-   * SUCCESS
-   * ============================================================
-   */
-
-  const transactionComplete =
-    transactionSuccess &&
-    !!transactionHash;
-
-  const displayError =
-    formError ??
-    (transactionError
-      ? "The wallet transaction was rejected or failed."
-      : null);
 
   /*
    * ============================================================
@@ -384,11 +356,11 @@ export function CreatePaymentForm({
 
   /*
    * ============================================================
-   * SUCCESS SCREEN
+   * REQUEST CREATED SCREEN
    * ============================================================
    */
 
-  if (transactionComplete) {
+  if (requestCreated) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
 
@@ -425,30 +397,30 @@ export function CreatePaymentForm({
               </div>
 
               <h3 className="mt-4 text-[18px] font-semibold text-[#222327]">
-                Payment successful
+                Request sent
               </h3>
 
               <p className="mt-2 text-[11px] leading-5 text-[#85868E]">
-                {amount} USDC sent to
+                You requested
               </p>
 
-              <p className="mt-1 font-mono text-[12px] font-semibold text-[#33343A]">
-                @{normalizedUsername}
+              <p className="mt-1 text-[16px] font-semibold text-[#222327]">
+                {amount} USDC
               </p>
 
-              {transactionHash && (
-                <a
-                  href={`${EXPLORER_URL}/tx/${transactionHash}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mx-auto mt-5 flex w-fit items-center gap-1.5 rounded-full bg-white px-3 py-2 text-[9px] font-semibold text-[#55565D] transition hover:bg-[#EEEEF0]"
-                >
-                  View transaction
-                  <ExternalLink
-                    size={11}
-                  />
-                </a>
-              )}
+              <p className="mt-1 font-mono text-[12px] font-semibold text-[#55565D]">
+                from @{normalizedUsername}
+              </p>
+
+              <div className="mx-auto mt-5 flex w-fit items-center gap-2 rounded-full bg-white px-3 py-2">
+
+                <span className="h-2 w-2 rounded-full bg-[#31A66A]" />
+
+                <span className="text-[9px] font-semibold text-[#55565D]">
+                  Waiting for payment
+                </span>
+
+              </div>
 
             </div>
 
@@ -468,7 +440,7 @@ export function CreatePaymentForm({
 
   /*
    * ============================================================
-   * MAIN MODAL
+   * MAIN REQUEST MODAL
    * ============================================================
    */
 
@@ -494,10 +466,7 @@ export function CreatePaymentForm({
           type="button"
           aria-label="Close"
           onClick={handleClose}
-          disabled={
-            isSending ||
-            isConfirming
-          }
+          disabled={submitting}
           className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-[#E7E7EA] bg-white text-[#777880] transition hover:bg-[#F5F5F6] hover:text-[#111111] disabled:opacity-40"
         >
           <X
@@ -536,11 +505,11 @@ export function CreatePaymentForm({
               </p>
 
               <h2 className="mt-1 text-[19px] font-semibold tracking-[-0.035em] text-[#111111]">
-                Pay someone
+                Request payment
               </h2>
 
-              <p className="mt-1.5 max-w-[300px] text-[10px] leading-5 text-[#85868E]">
-                Send USDC directly to an Arc Pay username.
+              <p className="mt-1.5 max-w-[310px] text-[10px] leading-5 text-[#85868E]">
+                Ask another Arc Pay user to send you USDC.
               </p>
 
             </div>
@@ -557,21 +526,21 @@ export function CreatePaymentForm({
         <div className="p-6">
 
           <form
-            onSubmit={handlePay}
+            onSubmit={handleRequest}
             className="space-y-5"
           >
 
-            {/* USERNAME */}
+            {/* FROM USERNAME */}
 
             <div>
 
               <div className="mb-2 flex items-center justify-between">
 
                 <label
-                  htmlFor="payment-username"
+                  htmlFor="request-username"
                   className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#777880]"
                 >
-                  Recipient
+                  Request from
                 </label>
 
                 <span className="text-[9px] text-[#A0A1A8]">
@@ -596,7 +565,7 @@ export function CreatePaymentForm({
                 </span>
 
                 <input
-                  id="payment-username"
+                  id="request-username"
                   type="text"
                   autoComplete="off"
                   spellCheck={false}
@@ -610,7 +579,6 @@ export function CreatePaymentForm({
 
                     setUsername(value);
                     setFormError(null);
-                    setHasSubmitted(false);
                   }}
                   className="min-w-0 flex-1 bg-transparent px-2 text-[13px] font-medium text-[#222327] outline-none placeholder:text-[#C1C2C7]"
                 />
@@ -670,8 +638,7 @@ export function CreatePaymentForm({
 
               {usernameValid &&
                 !resolvingUsername &&
-                !recipientReady &&
-                !usernameResolveError === false && (
+                !recipientReady && (
                   <p className="mt-2 text-[9px] font-medium text-[#D05B5B]">
                     @{normalizedUsername} is not registered.
                   </p>
@@ -686,7 +653,7 @@ export function CreatePaymentForm({
               <div className="mb-2 flex items-center justify-between">
 
                 <label
-                  htmlFor="payment-amount"
+                  htmlFor="request-amount"
                   className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#777880]"
                 >
                   Amount
@@ -701,7 +668,7 @@ export function CreatePaymentForm({
               <div className="flex h-[64px] items-center overflow-hidden rounded-[14px] border border-[#E2E2E5] bg-white transition focus-within:border-[#BFC0C5] focus-within:ring-2 focus-within:ring-[#111111]/[0.04]">
 
                 <input
-                  id="payment-amount"
+                  id="request-amount"
                   inputMode="decimal"
                   autoComplete="off"
                   placeholder="0.00"
@@ -711,7 +678,6 @@ export function CreatePaymentForm({
                       e.target.value
                     );
                     setFormError(null);
-                    setHasSubmitted(false);
                   }}
                   className="min-w-0 flex-1 bg-transparent px-4 text-[25px] font-semibold tracking-[-0.04em] text-[#111111] outline-none placeholder:text-[#C1C2C7]"
                 />
@@ -732,7 +698,7 @@ export function CreatePaymentForm({
 
             </div>
 
-            {/* RECIPIENT CARD */}
+            {/* REQUESTER */}
 
             <div className="rounded-[15px] border border-[#E7E7EA] bg-[#F7F7F8] p-3.5">
 
@@ -748,38 +714,40 @@ export function CreatePaymentForm({
                 <div className="min-w-0 flex-1">
 
                   <p className="text-[9px] font-medium uppercase tracking-[0.08em] text-[#A0A1A8]">
-                    Paying
+                    You will receive
                   </p>
 
                   <p className="mt-1 font-mono text-[12px] font-semibold text-[#33343A]">
-                    {usernameValid
-                      ? `@${normalizedUsername}`
-                      : "Enter username"}
+                    {registeredUsername
+                      ? `@${registeredUsername}`
+                      : address
+                      ? shortAddress(address)
+                      : "Connect wallet"}
                   </p>
 
-                  {recipientAddress && (
-                    <p className="mt-1 truncate font-mono text-[8px] text-[#999AA2]">
-                      {shortAddress(
-                        recipientAddress
-                      )}
-                    </p>
-                  )}
+                  {registeredUsername &&
+                    address && (
+                      <p className="mt-1 truncate font-mono text-[8px] text-[#999AA2]">
+                        {shortAddress(address)}
+                      </p>
+                    )}
 
                 </div>
 
-                {recipientReady && (
+                {registeredUsername && (
                   <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#F0FAF4] px-2.5 py-1 text-[8px] font-semibold text-[#31A66A]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#31A66A]" />
-                    Verified
+                    Username
                   </span>
                 )}
 
               </div>
+
             </div>
 
             {/* ERROR */}
 
-            {displayError && (
+            {formError && (
               <div className="flex items-start gap-3 rounded-[14px] border border-[#F2D5D5] bg-[#FFF8F8] px-4 py-3.5">
 
                 <CircleAlert
@@ -790,11 +758,11 @@ export function CreatePaymentForm({
                 <div className="min-w-0">
 
                   <p className="text-[10px] font-semibold text-[#B84D4D]">
-                    Payment unavailable
+                    Request unavailable
                   </p>
 
                   <p className="mt-1 text-[9px] leading-5 text-[#B76A6A]">
-                    {displayError}
+                    {formError}
                   </p>
 
                 </div>
@@ -802,37 +770,31 @@ export function CreatePaymentForm({
               </div>
             )}
 
-            {/* PAY BUTTON */}
+            {/* REQUEST BUTTON */}
 
             <button
               type="submit"
-              disabled={!canPay}
+              disabled={!canRequest}
               className="group flex h-[50px] w-full items-center justify-center gap-2 rounded-[14px] bg-[#111111] text-[11px] font-semibold text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:bg-[#EEEEF0] disabled:text-[#A0A1A8]"
             >
 
-              {isSending ? (
+              {submitting ? (
                 <>
                   <Loader2
                     size={15}
                     className="animate-spin"
                   />
-                  Confirm in wallet…
-                </>
-              ) : isConfirming ? (
-                <>
-                  <Loader2
-                    size={15}
-                    className="animate-spin"
-                  />
-                  Confirming payment…
+                  Sending request…
                 </>
               ) : !isConnected ? (
                 "Connect your wallet to continue"
+              ) : !registeredUsername ? (
+                "Set your username first"
               ) : !onArcTestnet ? (
                 "Switch to Arc Testnet"
               ) : (
                 <>
-                  Pay
+                  Request
                   {usernameValid &&
                     amountReady
                     ? ` ${amount} USDC`
@@ -847,7 +809,7 @@ export function CreatePaymentForm({
 
             </button>
 
-            {/* WALLET POPUP INFO */}
+            {/* INFO */}
 
             <div className="flex items-start justify-center gap-2 px-3">
 
@@ -857,13 +819,15 @@ export function CreatePaymentForm({
               />
 
               <p className="max-w-[330px] text-center text-[9px] leading-5 text-[#999AA2]">
-                Clicking Pay will open your wallet.
-                You will review and approve the USDC transaction there.
+                No wallet transaction is made when
+                requesting. The recipient will pay
+                when they approve your request.
               </p>
 
             </div>
 
           </form>
+
         </div>
       </div>
     </div>

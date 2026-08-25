@@ -15,6 +15,7 @@ import { TopBar } from "@/components/TopBar";
 import { Sidebar } from "@/components/Sidebar";
 import { CreatePaymentForm } from "@/components/CreatePaymentForm";
 import { UsernameModal } from "@/components/UsernameModal";
+import { PendingRequests } from "@/components/PendingRequests";
 
 import {
   USDC_ADDRESS,
@@ -401,6 +402,12 @@ export default function DashboardPage() {
               </div>
 
             </div>
+
+            {/* ==================================================
+                PENDING PAYMENT REQUESTS
+                ================================================== */}
+
+            <PendingRequests />
 
             {/* ==================================================
                 RECENT ACTIVITY

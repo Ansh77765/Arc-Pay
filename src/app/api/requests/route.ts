@@ -61,10 +61,12 @@ function getAuthenticatedWallet(
     return null;
   }
 
-  const [
-    encoded,
-    providedSignature,
-  ] = parts;
+  const encoded = parts[0];
+  const providedSignature = parts[1];
+
+  if (!encoded || !providedSignature) {
+    return null;
+  }
 
   const expectedSignature =
     crypto
@@ -78,6 +80,7 @@ function getAuthenticatedWallet(
   /*
    * Prevent timing attacks.
    */
+
   const providedBuffer =
     Buffer.from(
       providedSignature
@@ -196,11 +199,11 @@ export async function POST(
     }
 
     /*
-     * IMPORTANT:
-     *
-     * The server uses the authenticated wallet,
-     * not a wallet address supplied by the browser.
+     * The server trusts the authenticated
+     * wallet, not a wallet address supplied
+     * by the browser.
      */
+
     if (
       requesterWallet.toLowerCase() !==
       authenticatedWallet
@@ -381,10 +384,6 @@ export async function GET(
       );
     }
 
-    /*
-     * The browser cannot ask for another
-     * wallet's requests.
-     */
     if (
       wallet.toLowerCase() !==
       authenticatedWallet
@@ -492,12 +491,6 @@ export async function PATCH(
       );
     }
 
-    /*
-     * Only update a request that:
-     *
-     * 1. belongs to the authenticated wallet
-     * 2. is still pending
-     */
     const response =
       await fetch(
         `${SUPABASE_URL}/rest/v1/payment_requests?id=eq.${encodeURIComponent(id)}&recipient_wallet=eq.${authenticatedWallet}&status=eq.pending`,

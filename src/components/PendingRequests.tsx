@@ -76,6 +76,15 @@ export function PendingRequests() {
   const [decliningId, setDecliningId] =
     useState<string | null>(null);
 
+  /*
+   * Extra local lock.
+   *
+   * This prevents the same click from calling
+   * writeContract more than once.
+   */
+  const [payLocked, setPayLocked] =
+    useState(false);
+
   const {
     writeContract,
     data: transactionHash,
@@ -161,23 +170,34 @@ export function PendingRequests() {
   function handlePay(
     paymentRequest: PaymentRequest
   ) {
-    try {
-      setError(null);
-      setPayingId(
-        paymentRequest.id
-      );
+    /*
+     * HARD STOP.
+     *
+     * Once Pay has been clicked, nothing else can
+     * trigger another wallet request until this
+     * transaction finishes or fails.
+     */
+    if (
+      payLocked ||
+      payingId !== null ||
+      walletPending ||
+      confirming
+    ) {
+      return;
+    }
 
+    setPayLocked(true);
+    setPayingId(
+      paymentRequest.id
+    );
+    setError(null);
+
+    try {
       const amount =
         parseUnits(
           paymentRequest.amount,
           USDC_DECIMALS
         );
-
-      /*
-       * THIS OPENS THE WALLET POPUP.
-       *
-       * The recipient is paying the requester.
-       */
 
       writeContract({
         address: USDC_ADDRESS,
@@ -189,6 +209,7 @@ export function PendingRequests() {
         ],
       });
     } catch {
+      setPayLocked(false);
       setPayingId(null);
 
       setError(
@@ -196,6 +217,24 @@ export function PendingRequests() {
       );
     }
   }
+
+  /*
+   * ============================================================
+   * WALLET ERROR
+   * ============================================================
+   *
+   * If the user rejects the wallet popup,
+   * unlock Pay so they can try again.
+   */
+
+  useEffect(() => {
+    if (!walletError) {
+      return;
+    }
+
+    setPayLocked(false);
+    setPayingId(null);
+  }, [walletError]);
 
   /*
    * ============================================================
@@ -242,11 +281,15 @@ export function PendingRequests() {
                 payingId
             )
         );
+
+        setPayLocked(false);
+        setPayingId(null);
       } catch {
         setError(
           "Payment succeeded, but the request status could not be updated."
         );
-      } finally {
+
+        setPayLocked(false);
         setPayingId(null);
       }
     }
@@ -267,6 +310,14 @@ export function PendingRequests() {
   async function handleDecline(
     id: string
   ) {
+    if (
+      payLocked ||
+      walletPending ||
+      confirming
+    ) {
+      return;
+    }
+
     try {
       setDecliningId(id);
       setError(null);
@@ -385,9 +436,11 @@ export function PendingRequests() {
                 request.id;
 
               const busy =
+                payLocked ||
                 isThisRequestPaying ||
                 walletPending ||
-                confirming;
+                confirming ||
+                decliningId !== null;
 
               return (
                 <div

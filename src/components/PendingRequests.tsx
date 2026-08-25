@@ -11,6 +11,7 @@ import {
 
 import {
   useAccount,
+  useSignMessage,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
@@ -21,6 +22,10 @@ import {
   USDC_ADDRESS,
   USDC_DECIMALS,
 } from "@/lib/config";
+
+import {
+  authenticateWallet,
+} from "@/lib/walletAuth";
 
 type PaymentRequest = {
   id: string;
@@ -60,9 +65,12 @@ const erc20Abi = [
 export function PendingRequests() {
   const { address } = useAccount();
 
-  const [requests, setRequests] = useState<
-    PaymentRequest[]
-  >([]);
+  const {
+    signMessageAsync,
+  } = useSignMessage();
+
+  const [requests, setRequests] =
+    useState<PaymentRequest[]>([]);
 
   const [loading, setLoading] =
     useState(false);
@@ -76,15 +84,20 @@ export function PendingRequests() {
   const [decliningId, setDecliningId] =
     useState<string | null>(null);
 
+  const [authenticating, setAuthenticating] =
+    useState(false);
+
+  const [authenticated, setAuthenticated] =
+    useState(false);
+
   /*
    * Synchronous Pay lock.
    *
-   * useRef is used instead of useState because
-   * the ref changes immediately. This prevents
-   * two rapid clicks from creating two wallet
-   * transactions before React re-renders.
+   * This prevents two rapid clicks from
+   * creating two blockchain transactions.
    */
-  const payLockRef = useRef(false);
+  const payLockRef =
+    useRef(false);
 
   const {
     writeContract,
@@ -103,6 +116,63 @@ export function PendingRequests() {
 
   /*
    * ============================================================
+   * WALLET AUTHENTICATION
+   * ============================================================
+   */
+
+  async function ensureAuthenticated() {
+    if (!address) {
+      throw new Error(
+        "Connect your wallet first."
+      );
+    }
+
+    if (authenticated) {
+      return;
+    }
+
+    if (authenticating) {
+      throw new Error(
+        "Wallet verification is already in progress."
+      );
+    }
+
+    setAuthenticating(true);
+    setError(null);
+
+    try {
+      await authenticateWallet(
+        address,
+        signMessageAsync
+      );
+
+      setAuthenticated(true);
+    } catch (err) {
+      throw new Error(
+        err instanceof Error
+          ? err.message
+          : "Wallet verification failed."
+      );
+    } finally {
+      setAuthenticating(false);
+    }
+  }
+
+  /*
+   * Reset authentication when wallet changes.
+   */
+
+  useEffect(() => {
+    setAuthenticated(false);
+    setRequests([]);
+    setError(null);
+
+    payLockRef.current = false;
+    setPayingId(null);
+  }, [address]);
+
+  /*
+   * ============================================================
    * LOAD REQUESTS
    * ============================================================
    */
@@ -116,6 +186,11 @@ export function PendingRequests() {
     try {
       setLoading(true);
       setError(null);
+
+      /*
+       * Authenticate before accessing the API.
+       */
+      await ensureAuthenticated();
 
       const response =
         await fetch(
@@ -149,18 +224,93 @@ export function PendingRequests() {
     }
   }
 
+  /*
+   * Load requests once when wallet connects.
+   *
+   * Then refresh every 10 seconds.
+   */
+
   useEffect(() => {
+    if (!address) {
+      return;
+    }
+
     loadRequests();
 
     const interval =
       setInterval(
-        loadRequests,
+        () => {
+          /*
+           * Don't ask for a signature every
+           * 10 seconds. Only use the existing
+           * authenticated session.
+           */
+          if (authenticated) {
+            loadRequestsWithoutAuth();
+          }
+        },
         10000
       );
 
     return () =>
       clearInterval(interval);
-  }, [address]);
+  }, [
+    address,
+    authenticated,
+  ]);
+
+  /*
+   * ============================================================
+   * LOAD WITHOUT NEW SIGNATURE
+   * ============================================================
+   */
+
+  async function loadRequestsWithoutAuth() {
+    if (!address) {
+      return;
+    }
+
+    try {
+      const response =
+        await fetch(
+          `/api/requests?wallet=${address}`,
+          {
+            cache: "no-store",
+          }
+        );
+
+      const data =
+        await response.json();
+
+      /*
+       * If the session expired, authenticate
+       * again on the next normal load.
+       */
+      if (
+        response.status === 401
+      ) {
+        setAuthenticated(false);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "Could not load requests."
+        );
+      }
+
+      setRequests(
+        data.requests || []
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not load requests."
+      );
+    }
+  }
 
   /*
    * ============================================================
@@ -168,26 +318,29 @@ export function PendingRequests() {
    * ============================================================
    */
 
-  function handlePay(
+  async function handlePay(
     paymentRequest: PaymentRequest
   ) {
     /*
      * HARD SYNCHRONOUS STOP.
      *
-     * This runs before React state updates,
-     * so a second rapid click cannot call
-     * writeContract() again.
+     * This prevents duplicate blockchain
+     * transactions from rapid clicks.
      */
 
     if (
       payLockRef.current ||
       payingId !== null ||
       walletPending ||
-      confirming
+      confirming ||
+      authenticating
     ) {
       return;
     }
 
+    /*
+     * Lock immediately.
+     */
     payLockRef.current = true;
 
     setPayingId(
@@ -197,6 +350,15 @@ export function PendingRequests() {
     setError(null);
 
     try {
+      /*
+       * Make sure this wallet is authenticated.
+       *
+       * If the wallet was already authenticated,
+       * this does NOT open another signature popup.
+       */
+
+      await ensureAuthenticated();
+
       const amount =
         parseUnits(
           paymentRequest.amount,
@@ -212,13 +374,15 @@ export function PendingRequests() {
           amount,
         ],
       });
-    } catch {
+    } catch (err) {
       payLockRef.current = false;
 
       setPayingId(null);
 
       setError(
-        "Could not start the payment."
+        err instanceof Error
+          ? err.message
+          : "Could not start the payment."
       );
     }
   }
@@ -227,9 +391,6 @@ export function PendingRequests() {
    * ============================================================
    * WALLET ERROR
    * ============================================================
-   *
-   * If the user rejects the wallet popup,
-   * unlock Pay so they can try again.
    */
 
   useEffect(() => {
@@ -258,6 +419,12 @@ export function PendingRequests() {
 
     async function markPaid() {
       try {
+        /*
+         * Make sure the authenticated session
+         * is still valid.
+         */
+        await ensureAuthenticated();
+
         const response =
           await fetch(
             "/api/requests",
@@ -274,8 +441,14 @@ export function PendingRequests() {
             }
           );
 
+        const data =
+          await response.json();
+
         if (!response.ok) {
-          throw new Error();
+          throw new Error(
+            data?.error ||
+              "Could not update payment request."
+          );
         }
 
         setRequests(
@@ -289,9 +462,11 @@ export function PendingRequests() {
 
         payLockRef.current = false;
         setPayingId(null);
-      } catch {
+      } catch (err) {
         setError(
-          "Payment succeeded, but the request status could not be updated."
+          err instanceof Error
+            ? err.message
+            : "Payment succeeded, but the request status could not be updated."
         );
 
         payLockRef.current = false;
@@ -318,7 +493,8 @@ export function PendingRequests() {
     if (
       payLockRef.current ||
       walletPending ||
-      confirming
+      confirming ||
+      authenticating
     ) {
       return;
     }
@@ -326,6 +502,8 @@ export function PendingRequests() {
     try {
       setDecliningId(id);
       setError(null);
+
+      await ensureAuthenticated();
 
       const response =
         await fetch(
@@ -423,7 +601,9 @@ export function PendingRequests() {
               className="animate-spin"
             />
 
-            Checking requests…
+            {authenticating
+              ? "Verifying wallet…"
+              : "Checking requests…"}
 
           </div>
 
@@ -445,7 +625,8 @@ export function PendingRequests() {
                 isThisRequestPaying ||
                 walletPending ||
                 confirming ||
-                decliningId !== null;
+                decliningId !== null ||
+                authenticating;
 
               return (
                 <div
